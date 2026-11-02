@@ -30,7 +30,7 @@ GOOGLE_CLIENT_ID = ""
 # Teams with admins, members and email invites.
 TEAMS = "false"
 # Offline data kept in step with the backend (/sync), in a Durable Object per person and per team.
-SYNC = "false"
+SYNC = "true"
 # The whole app's sync per UTC day, across everyone: changes, and bytes of files started. Over
 # either, syncing waits until the next day. R2 holds 10 GB free and bills beyond.
 SYNC_APP_CHANGES_PER_DAY = "1000000"
