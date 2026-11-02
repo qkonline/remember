@@ -3,5 +3,7 @@
 # deploy creates the project (or create it in the dashboard: Workers & Pages → Create → Pages →
 # Direct Upload). Build variables (PUBLIC_*) are read on the machine that builds, not here.
 name = "remember"
+# Pages configs can't pin an account: deploy with CLOUDFLARE_ACCOUNT_ID=6e9ae8440fa497c90ad8dc45d4d9d3a1
+# (Remember's own; the Wrangler login sees two).
 pages_build_output_dir = "build"
 compatibility_date = "2026-10-01"

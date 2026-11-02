@@ -3,8 +3,14 @@
 # writes their ids here (README, "Deploying"). Secrets go in with `npx wrangler secret put <NAME>`,
 # never in this file.
 name = "remember-api"
+# Remember's own Cloudflare account (the Wrangler login sees two; this picks the right one).
+account_id = "6e9ae8440fa497c90ad8dc45d4d9d3a1"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
+
+# The API answers under the app's own address: https://remember.kaiserkhan.com/api/… (the Pages
+# project serves everything else on the same hostname).
+routes = [{ pattern = "remember.kaiserkhan.com/api/*", zone_name = "kaiserkhan.com" }]
 
 [vars]
 # The app's own name: the passwordKey salt prefix (lower case, digits, dashes). Never change it
@@ -14,17 +20,17 @@ APP_NAME = "remember"
 APP_TITLE = "Remember"
 # Frontend origins allowed to call the API (CORS) and to be returned to after Google. The first is
 # also where links in emails go, unless APP_URL says otherwise.
-ALLOWED_ORIGINS = "http://localhost:5180,http://localhost:4180,http://localhost:5173,http://localhost:4173"
+ALLOWED_ORIGINS = "https://remember.kaiserkhan.com"
 # The frontend's address for links in emails (invites). Empty: the first allowed origin.
-APP_URL = ""
+APP_URL = "https://remember.kaiserkhan.com"
 # Passkeys belong to this domain and its subdomains. Locally, localhost.
-RP_ID = "localhost"
-MAIL_FROM = "Starter <hello@example.com>"
+RP_ID = "remember.kaiserkhan.com"
+MAIL_FROM = "Remember <remember@kaiserkhan.com>"
 # Switches ("true" or "false"). Email codes cost an email from the quota each time.
 EMAIL_CODE = "false"
 REQUIRE_VERIFIED_EMAIL = "false"
 # The CAPTCHA is on when both the site key (here) and TURNSTILE_SECRET (a secret) are set.
-TURNSTILE_SITE_KEY = ""
+TURNSTILE_SITE_KEY = "0x4AAAAAAFwhN9zLFNhhIrKY"
 # Google is on when both GOOGLE_CLIENT_ID (here) and GOOGLE_CLIENT_SECRET (a secret) are set.
 GOOGLE_CLIENT_ID = ""
 # Teams with admins, members and email invites.
@@ -41,8 +47,8 @@ ADMIN_EMAILS = ""
 # Push is on when both VAPID_PUBLIC_KEY (here) and VAPID_PRIVATE_KEY (a secret) are set; make the
 # pair once with `node scripts/vapid.mjs` (`npm run setup` does). VAPID_SUBJECT is the contact push
 # services see: mailto: or https:; empty, mailto:CONTACT_EMAIL, else APP_URL.
-VAPID_PUBLIC_KEY = ""
-VAPID_SUBJECT = ""
+VAPID_PUBLIC_KEY = "BD3Rv4EbGLdMNVcz9pEwHi64LQ_ewVLXc9_JmXJqc9hjPkqWH2K46LMTZ_KfU2r_4FQAh5_SRk3NK8Us0qUN9mU"
+VAPID_SUBJECT = "https://remember.kaiserkhan.com/"
 # Contact messages are also emailed here when set (each one an email from the quota).
 CONTACT_EMAIL = ""
 # DEV_MAIL (mail kept at /api/dev/mail, per-network limits off) is never set here, so a deploy
@@ -52,23 +58,23 @@ CONTACT_EMAIL = ""
 # kept in D1. Off in local development, like every per-network limit.
 [[ratelimits]]
 name = "LIMITER"
-namespace_id = "1001"
+namespace_id = "1003"
 simple = { limit = 60, period = 60 }
 
 [[d1_databases]]
 binding = "DB"
-database_name = "starter"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_name = "remember"
+database_id = "2d0a4d76-c054-4a6f-81a0-a249f35d5361"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
 binding = "PHOTOS"
-bucket_name = "starter-photos"
+bucket_name = "remember-files"
 
 # Synced files (SYNC on), under sync/ in the same bucket.
 [[r2_buckets]]
 binding = "FILES"
-bucket_name = "starter-photos"
+bucket_name = "remember-files"
 
 # Synced data (SYNC on): one Durable Object per space (a person's own, or a team's), each with its
 # own SQLite storage. Bound whether or not SYNC is on; nothing is made until it's used.
