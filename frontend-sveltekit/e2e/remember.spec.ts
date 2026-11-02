@@ -140,3 +140,17 @@ test('shelves: make one, rename and recolour it, and remove it', async ({ page }
   await expect(page.getByRole('status').filter({ hasText: 'Removed Cell biology.' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'An empty shelf, ready to grow' })).toBeVisible();
 });
+
+// What the core's tests leave to the app (frontend README): Remember's own way to the account
+// page, and the name saved there showing in the sidebar.
+test("the sidebar's account card opens the account page and shows the saved name", async ({ page }) => {
+  await signUp(page, uniqueEmail('account'), 'correct horse battery');
+  const card = page.getByRole('link', { name: /Your account/ });
+  await card.click();
+  await expect(page.getByRole('heading', { name: 'Account', level: 1 })).toBeVisible();
+  await expect(card).toHaveAttribute('aria-current', 'page');
+  await page.getByLabel('Name').fill('Ada Lovelace');
+  await page.getByRole('button', { name: 'Save name' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Ada Lovelace/ })).toHaveAttribute('aria-current', 'page');
+});
