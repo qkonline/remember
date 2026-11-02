@@ -29,6 +29,7 @@
   import Key from '#lib/app/ui/Key.svelte';
   import Leaves from '#lib/app/ui/Leaves.svelte';
   import Logo from '#lib/app/ui/Logo.svelte';
+  import ModeSwitch from '#lib/app/ui/ModeSwitch.svelte';
   import UndoBar from '#lib/app/ui/UndoBar.svelte';
 
   let { user, children }: { user: User; children: Snippet } = $props();
@@ -70,6 +71,7 @@
       <a class="rf-brand" href={resolve('/(app)/app')}><Logo />{appName}</a>
       <div class="rf-tools">
         {#if auth.features?.sync}<SyncStatus />{/if}
+        <ModeSwitch />
         <Bell />
       </div>
     </header>
@@ -105,6 +107,7 @@
       <div class="rf-me">
         <div class="rf-tools">
           {#if auth.features?.sync}<SyncStatus />{/if}
+          <ModeSwitch />
           <Bell />
         </div>
         <a class="rf-person" href={resolve('/(app)/account')}>
@@ -113,8 +116,6 @@
         </a>
         <p class="rf-small">
           <button type="button" onclick={() => feedback?.show()}>{t('Send feedback')}</button>
-          <a href={resolve('contact')}>{t('Contact')}</a>
-          <a href={resolve('privacy')}>{t('Privacy')}</a>
         </p>
       </div>
     </aside>
@@ -453,7 +454,6 @@
       padding: 0 0.375rem;
       font-size: 0.8125rem;
     }
-    .rf-small a,
     .rf-small button {
       color: var(--color-muted);
       background: none;
@@ -463,7 +463,6 @@
       text-decoration: none;
       cursor: pointer;
     }
-    .rf-small a:hover,
     .rf-small button:hover {
       text-decoration: underline;
     }

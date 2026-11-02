@@ -229,8 +229,6 @@
     <button type="button" onclick={() => feedback?.show()}
       ><span>{t('Send feedback')}</span><span aria-hidden="true">›</span></button
     >
-    <a href={resolve('contact')}><span>{t('Contact')}</span><span aria-hidden="true">›</span></a>
-    <a href={resolve('privacy')}><span>{t('Privacy')}</span><span aria-hidden="true">›</span></a>
   </nav>
 
   <button type="button" class="st-out" onclick={() => signOut()}>{t('Sign out')}</button>
@@ -420,9 +418,7 @@
     outline-offset: -2px;
   }
   @media (min-width: 64rem) {
-    .st-links button,
-    .st-links a[href$='contact'],
-    .st-links a[href$='privacy'] {
+    .st-links button {
       display: none;
     }
   }

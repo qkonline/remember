@@ -1,9 +1,15 @@
-<!-- Public pages: built with their content, readable without JavaScript. -->
+<!--
+  Public pages: built with their content, readable without JavaScript. Remember's mark and a
+  light/dark switch in the header; the legal and contact links are hidden for now (the pages
+  stay at their addresses).
+-->
 <script lang="ts">
   import { resolve } from '$app/paths';
   import { appName } from '#lib/config.ts';
   import { t } from '#lib/i18n/index.svelte.ts';
   import Button from '#lib/components/ui/Button.svelte';
+  import Logo from '#lib/app/ui/Logo.svelte';
+  import ModeSwitch from '#lib/app/ui/ModeSwitch.svelte';
 
   let { children } = $props();
 </script>
@@ -11,8 +17,9 @@
 <div class="site">
   <header class="top">
     <div class="bar">
-      <a class="brand" href={resolve('')}><span class="logo" aria-hidden="true"></span>{appName}</a>
+      <a class="brand" href={resolve('')}><Logo size={28} />{appName}</a>
       <nav aria-label={t('Account')}>
+        <ModeSwitch />
         <a href={resolve('signin')}>{t('Sign in')}</a>
         <Button variant="primary" size="small" href={resolve('signup')}>{t('Create account')}</Button>
       </nav>
@@ -25,17 +32,13 @@
 
   <footer class="bar muted small">
     <span>© {new Date().getFullYear()} {appName}</span>
-    <nav aria-label={t('Legal')}>
-      <a href={resolve('contact')}>{t('Contact')}</a>
-      <a href={resolve('privacy')}>{t('Privacy')}</a>
-      <a href={resolve('terms')}>{t('Terms')}</a>
-    </nav>
   </footer>
 </div>
 
 <style>
   .site {
     min-height: 100dvh;
+    background: var(--color-base-100);
     display: flex;
     flex-direction: column;
   }
@@ -64,26 +67,21 @@
   nav {
     display: flex;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-3);
   }
 
   .brand {
     display: inline-flex;
     align-items: center;
     gap: var(--space-2);
-    font-weight: var(--weight-heading);
+    font-weight: 600;
+    font-size: 1.0625rem;
     color: var(--color-heading);
     text-decoration: none;
   }
 
-  .logo {
-    width: 1.25rem;
-    height: 1.25rem;
-    border-radius: var(--radius-sm);
-    background: var(--color-accent);
-  }
-
   nav a:not(:global(.btn)) {
+    white-space: nowrap;
     font-size: var(--text-sm);
     color: var(--color-text);
   }
@@ -98,9 +96,5 @@
 
   footer {
     border-top: 1px solid var(--color-border);
-  }
-
-  footer a {
-    color: inherit;
   }
 </style>

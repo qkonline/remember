@@ -12,6 +12,11 @@ compatibility_date = "2026-10-01"
 # project serves everything else on the same hostname).
 routes = [{ pattern = "remember.kaiserkhan.com/api/*", zone_name = "kaiserkhan.com" }]
 
+# Local development stays on localhost: without this, `wrangler dev` gives requests the route's
+# host, so the API wouldn't know it runs locally (dev mail, test CAPTCHA keys).
+[dev]
+host = "localhost:8787"
+
 [vars]
 # The app's own name: the passwordKey salt prefix (lower case, digits, dashes). Never change it
 # once people have passwords, or none of them will work.

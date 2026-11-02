@@ -86,12 +86,6 @@
     {t('Already have an account?')}
     <a href="{resolve('signin')}{next ? `?next=${encodeURIComponent(next)}` : ''}">{t('Sign in')}</a>
   </p>
-  <p class="muted small">
-    <Trans
-      text="By creating an account you agree to the <terms>terms</terms> and <privacy>privacy policy</privacy>."
-    >
-      {#snippet terms(s: string)}<a href={resolve('terms')}>{s}</a>{/snippet}
-      {#snippet privacy(s: string)}<a href={resolve('privacy')}>{s}</a>{/snippet}
-    </Trans>
-  </p>
+  <!-- Remember: the line agreeing to the terms and privacy policy is hidden until those pages are
+       written (put it back from the template then). -->
 </AuthShell>

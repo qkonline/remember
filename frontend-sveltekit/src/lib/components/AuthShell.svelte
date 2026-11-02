@@ -3,6 +3,8 @@
   import type { Snippet } from 'svelte';
   import { resolve } from '$app/paths';
   import { appName } from '#lib/config.ts';
+  import Logo from '#lib/app/ui/Logo.svelte';
+  import ModeSwitch from '#lib/app/ui/ModeSwitch.svelte';
 
   let { title, lead, children }: { title: string; lead?: string; children: Snippet } = $props();
 </script>
@@ -10,7 +12,8 @@
 <svelte:head><title>{title} · {appName}</title></svelte:head>
 
 <div class="shell">
-  <a class="brand" href={resolve('')}><span class="logo" aria-hidden="true"></span>{appName}</a>
+  <div class="mode"><ModeSwitch /></div>
+  <a class="brand" href={resolve('')}><Logo size={30} />{appName}</a>
   <main id="main" class="auth-card stack">
     <header>
       <h1>{title}</h1>
@@ -22,6 +25,7 @@
 
 <style>
   .shell {
+    position: relative;
     min-height: 100dvh;
     padding: var(--space-7) var(--space-4);
     display: flex;
@@ -40,11 +44,10 @@
     text-decoration: none;
   }
 
-  .logo {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: var(--radius-sm);
-    background: var(--color-accent);
+  .mode {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
   }
 
   .auth-card {
