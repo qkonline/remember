@@ -1,0 +1,276 @@
+// One space's Durable Object (PRD section 11): a person's own data, or a team's. Cloudflare runs
+// each space as one object, anywhere in its network, with its own SQLite storage, and hands it
+// one request at a time: every space is its own first-come-first-served queue, and a million
+// spaces are a million queues side by side rather than one shared line. The data is in
+// store.ts; this adds the per-minute limits (kept in memory: the object holds all of its space's
+// requests, so the count is exact while it's awake, and starting afresh after it sleeps is fine
+// for a limit), and the R2 calls that start and finish multipart uploads.
+//
+// Every method answers an `Outcome`: plain data, since a thrown error loses its fields on the
+// way back to the Worker.
+
+import { DurableObject } from 'cloudflare:workers';
+import { syncRules } from '../app/sync';
+import type { Env } from '../env';
+import type { SyncWho } from './rules';
+import type { Totals } from './meter';
+import {
+  DAY,
+  fileView,
+  MINUTE,
+  toMidnight,
+  partLength,
+  partsOf,
+  refuse,
+  SpaceStore,
+  type Outcome,
+  type Result,
+  type RecordView,
+} from './store';
+
+/** Requests a minute per person in one space. */
+export const PUSHES_PER_MINUTE = 60;
+export const PULLS_PER_MINUTE = 300;
+export const PARTS_PER_MINUTE = 600;
+
+type FileView = ReturnType<typeof fileView>;
+
+/** Where a space's files are in R2: `sync/user/<id>/<file>` or `sync/team/<id>/<file>`. */
+export const filePrefix = (space: string) => `sync/${space.replace(':', '/')}/`;
+
+export class SyncSpace extends DurableObject<Env> {
+  private readonly store: SpaceStore;
+  private readonly windows = new Map<string, { start: number; count: number }>();
+  /** Taken in since last told to the app's meter, when that was, and the day the app was full. */
+  private unmetered: Totals = { changes: 0, bytes: 0 };
+  private meteredAt = 0;
+  private fullDay = -1;
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env);
+    this.store = new SpaceStore(ctx.storage.sql, (fn) => ctx.storage.transactionSync(fn), syncRules);
+  }
+
+  /** The app has taken in as much as it may today (SYNC_APP_*): wait until tomorrow (UTC). */
+  private appFull() {
+    const now = Date.now();
+    if (this.fullDay !== Math.floor(now / DAY)) return null;
+    return refuse(429, 'rate_limited', "The app has taken in as much as it can today. What's waiting is kept and goes tomorrow.", toMidnight(now));
+  }
+
+  /**
+   * Counts what this space took in towards the app's daily totals, telling the meter about once a
+   * minute (or sooner after a lot), after the reply: a request a minute per busy space at most.
+   */
+  private metered(changes: number, bytes: number) {
+    this.unmetered.changes += changes;
+    this.unmetered.bytes += bytes;
+    const now = Date.now();
+    if (now - this.meteredAt < MINUTE && this.unmetered.changes < 500 && this.unmetered.bytes < 512 * 1024 ** 2) return;
+    const sent = this.unmetered;
+    const day = Math.floor(now / DAY);
+    this.unmetered = { changes: 0, bytes: 0 };
+    this.meteredAt = now;
+    const caps = {
+      changes: Number(this.env.SYNC_APP_CHANGES_PER_DAY) || 1_000_000,
+      bytes: Number(this.env.SYNC_APP_FILE_BYTES_PER_DAY) || 5 * 1024 ** 3,
+    };
+    this.ctx.waitUntil(
+      this.env.METER.get(this.env.METER.idFromName(`meter:${day}`))
+        .add(sent.changes, sent.bytes, caps)
+        .then((r) => {
+          if (r.over) this.fullDay = day;
+        })
+        .catch((e: unknown) => {
+          // Told next time instead.
+          this.unmetered.changes += sent.changes;
+          this.unmetered.bytes += sent.bytes;
+          console.error('sync meter', e);
+        }),
+    );
+  }
+
+  /** A deleted space answers not_found to everything, so a request already on its way can't fill it again. */
+  private gone() {
+    return this.store.isGone ? refuse(404, 'not_found', 'This data has been deleted.') : null;
+  }
+
+  /** Counts one request against `key`; the seconds to wait when it's over `max` a minute. */
+  private busy(key: string, max: number, now = Date.now()): number | null {
+    let w = this.windows.get(key);
+    if (!w || now - w.start >= MINUTE) {
+      w = { start: now, count: 0 };
+      this.windows.set(key, w);
+      // Forget the windows that have run out, so the map stays small.
+      if (this.windows.size > 1000) for (const [k, v] of this.windows) if (now - v.start >= MINUTE) this.windows.delete(k);
+    }
+    if (w.count >= max) return Math.max(1, Math.ceil((w.start + MINUTE - now) / 1000));
+    w.count++;
+    return null;
+  }
+
+  private slowDown(wait: number) {
+    return refuse(429, 'rate_limited', 'Syncing is going too fast. It will carry on in a moment.', wait);
+  }
+
+  async push(who: SyncWho, body: string): Promise<Outcome<{ results: Result[] }>> {
+    const wait = this.busy(`push:${who.user}`, PUSHES_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    const full = this.appFull();
+    if (full) return full;
+    const out = this.store.push(who, body);
+    if (!out.ok) return out;
+    if (out.value.applied.length) this.metered(out.value.applied.length, 0);
+    if (syncRules.afterApply && out.value.applied.length) {
+      const applied = out.value.applied.map((change) => ({ change, who }));
+      // After the reply: the batch is in either way, and a failure here never undoes it.
+      this.ctx.waitUntil(
+        syncRules.afterApply(this.env, who.space, applied).catch((e: unknown) => console.error('sync afterApply failed', who.space, e)),
+      );
+    }
+    return { ok: true, value: { results: out.value.results } };
+  }
+
+  async pull(user: string, since: number, limit?: number): Promise<Outcome<{ records: RecordView[]; next: string; more: boolean }>> {
+    const gone = this.gone();
+    if (gone) return gone;
+    const wait = this.busy(`pull:${user}`, PULLS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    return { ok: true, value: this.store.pull(since, limit) };
+  }
+
+  /** Starts an upload, or answers with the file already started under this id. */
+  async fileStart(space: string, user: string, f: { id: string; type: string; size: number }): Promise<Outcome<{ file: FileView }>> {
+    const gone = this.gone();
+    if (gone) return gone;
+    const wait = this.busy(`part:${user}`, PARTS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    // No other request of this space runs until the upload is recorded, so one id is one upload.
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const check = this.store.fileCheck(user, f);
+      if (!check.ok) return check;
+      if (check.value) return { ok: true as const, value: { file: fileView(check.value) } };
+      const full = this.appFull();
+      if (full) return full;
+      this.metered(0, f.size);
+      const upload = await this.env.FILES.createMultipartUpload(filePrefix(space) + f.id, { httpMetadata: { contentType: f.type } });
+      return { ok: true as const, value: { file: fileView(this.store.fileStarted(user, f, upload.uploadId)) } };
+    });
+  }
+
+  /** Where part `n` of a file goes, once its length is right; the Worker sends the bytes to R2. */
+  async filePart(space: string, user: string, fileId: string, n: number, length: number): Promise<Outcome<{ key: string; uploadId: string }>> {
+    const gone = this.gone();
+    if (gone) return gone;
+    const wait = this.busy(`part:${user}`, PARTS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    const f = this.store.file(fileId);
+    if (!f || f.deleted) return refuse(404, 'not_found', "That upload isn't here. Start it again.");
+    if (f.complete) return refuse(409, 'conflict', 'That file is already complete.');
+    const want = partLength(f.size, n);
+    if (want === null) return refuse(400, 'invalid_input', 'That file has {count} parts.', undefined, { count: partsOf(f.size) });
+    if (length !== want) return refuse(400, 'invalid_input', 'Part {number} should be {bytes} bytes.', undefined, { number: n, bytes: want });
+    return { ok: true, value: { key: filePrefix(space) + f.id, uploadId: f.upload_id } };
+  }
+
+  async fileComplete(space: string, user: string, fileId: string, parts: { number: number; etag: string }[]): Promise<Outcome<{ file: FileView }>> {
+    const wait = this.busy(`part:${user}`, PARTS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const f = this.store.file(fileId);
+      if (!f || f.deleted) return refuse(404, 'not_found', "That upload isn't here. Start it again.");
+      if (f.complete) return { ok: true as const, value: { file: fileView(f) } };
+      const count = partsOf(f.size);
+      if (parts.length !== count || parts.some((p, i) => p.number !== i + 1))
+        return refuse(400, 'invalid_input', 'Send all {count} parts, in order, to finish this file.', undefined, { count });
+      try {
+        await this.env.FILES.resumeMultipartUpload(filePrefix(space) + f.id, f.upload_id).complete(
+          parts.map((p) => ({ partNumber: p.number, etag: p.etag })),
+        );
+      } catch {
+        // The parts don't match, or R2 has dropped the upload (left unfinished for days): either
+        // way the parts go again, into a new upload, so the device never loops on a dead one.
+        await this.restart(space, f.id, f.upload_id, f.type);
+        return refuse(400, 'invalid_input', "The parts sent don't match what was uploaded. Send them again.");
+      }
+      this.store.fileCompleted(f.id);
+      return { ok: true as const, value: { file: fileView({ ...f, complete: 1 }) } };
+    });
+  }
+
+  /**
+   * Deletes a file: by whoever uploaded it, or a team admin. Gone, or never there: done all the
+   * same, so sending it twice is harmless. The row stays, marked, so its id isn't used again.
+   */
+  async fileDelete(space: string, user: string, isAdmin: boolean, fileId: string): Promise<Outcome<null>> {
+    const gone = this.gone();
+    if (gone) return gone;
+    const wait = this.busy(`part:${user}`, PARTS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    return this.ctx.blockConcurrencyWhile(async () => {
+      const f = this.store.file(fileId);
+      if (!f || f.deleted) return { ok: true as const, value: null };
+      if (f.created_by !== user && !isAdmin) return refuse(403, 'forbidden', 'Only whoever added this file, or a team admin, can delete it.');
+      const key = filePrefix(space) + f.id;
+      if (f.complete) await this.env.FILES.delete(key);
+      else
+        await this.env.FILES.resumeMultipartUpload(key, f.upload_id)
+          .abort()
+          .catch(() => {});
+      this.store.fileDeleted(f.id);
+      return { ok: true as const, value: null };
+    });
+  }
+
+  /** R2 refused a part (the upload is gone): a new upload for the same file, which the device fills from part 1. */
+  async fileRestart(space: string, fileId: string): Promise<void> {
+    await this.ctx.blockConcurrencyWhile(async () => {
+      const f = this.store.file(fileId);
+      if (f && !f.complete) await this.restart(space, f.id, f.upload_id, f.type);
+    });
+  }
+
+  private async restart(space: string, fileId: string, uploadId: string, type: string): Promise<void> {
+    const key = filePrefix(space) + fileId;
+    await this.env.FILES.resumeMultipartUpload(key, uploadId)
+      .abort()
+      .catch(() => {});
+    const upload = await this.env.FILES.createMultipartUpload(key, { httpMetadata: { contentType: type } });
+    this.store.fileRestarted(fileId, upload.uploadId);
+  }
+
+  /** Where a complete file is, for the Worker to send. */
+  async fileGet(space: string, user: string, fileId: string): Promise<Outcome<{ key: string; type: string }>> {
+    const gone = this.gone();
+    if (gone) return gone;
+    const wait = this.busy(`pull:${user}`, PULLS_PER_MINUTE);
+    if (wait) return this.slowDown(wait);
+    const f = this.store.file(fileId);
+    if (!f?.complete || f.deleted) return refuse(404, 'not_found', "That file isn't here.");
+    return { ok: true, value: { key: filePrefix(space) + f.id, type: f.type } };
+  }
+
+  /**
+   * Everything of this space goes: its files in R2, unfinished uploads, and its storage. A mark
+   * stays, so a request that was already on its way when the account or team went is refused
+   * rather than starting the space again.
+   */
+  async wipe(space: string): Promise<void> {
+    // Marked first: other requests can run while R2 answers, and they find it gone.
+    this.store.markGone();
+    for (const f of this.store.unfinished())
+      await this.env.FILES.resumeMultipartUpload(filePrefix(space) + f.id, f.upload_id)
+        .abort()
+        .catch(() => {});
+    let cursor: string | undefined;
+    do {
+      const page = await this.env.FILES.list({ prefix: filePrefix(space), cursor });
+      if (page.objects.length) await this.env.FILES.delete(page.objects.map((o) => o.key));
+      cursor = page.truncated ? page.cursor : undefined;
+    } while (cursor);
+    await this.ctx.storage.deleteAll();
+    this.windows.clear();
+    this.store.init();
+    this.store.markGone();
+  }
+}

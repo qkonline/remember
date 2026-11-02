@@ -1,0 +1,73 @@
+<!--
+  A support session (PRD R6.3). The admin area opens this page in a new tab with a one-time code;
+  it is traded for a session that lives in this tab only (sessionStorage), so the admin's own
+  session on the device is untouched. `?ended=1` is where the tab lands when it ends.
+-->
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { resolve } from '$app/paths';
+  import { page } from '$app/state';
+  import { ApiError, api, messageOf } from '#lib/api/index.ts';
+  import { homePath } from '#lib/config.ts';
+  import { startSupport } from '#lib/device.ts';
+  import { loadSupport } from '#lib/session.svelte.ts';
+  import { t } from '#lib/i18n/index.svelte.ts';
+  import AuthShell from '#lib/components/AuthShell.svelte';
+  import Spinner from '#lib/components/Spinner.svelte';
+  import Button from '#lib/components/ui/Button.svelte';
+
+  let phase = $state<'working' | 'ended' | 'failed'>('working');
+  let problem = $state('');
+
+  onMount(async () => {
+    const params = page.url.searchParams;
+    if (params.get('ended') === '1') {
+      phase = 'ended';
+      return;
+    }
+    const code = params.get('code');
+    // Out of the address bar and history: the code works once.
+    await goto(page.url.pathname, { shallow: true, replace: true });
+    if (!code) {
+      phase = 'failed';
+      problem = t('This page needs a support link from the admin area.');
+      return;
+    }
+    try {
+      const result = await api.supportExchange(code);
+      startSupport({ token: result.token, email: result.user.email });
+      loadSupport();
+      await goto(resolve(homePath), { replace: true });
+    } catch (e) {
+      phase = 'failed';
+      problem =
+        e instanceof ApiError && (e.code === 'invalid_code' || e.code === 'not_found')
+          ? t('This support link has expired or was already used. Start a new one from the admin area.')
+          : messageOf(e);
+    }
+  });
+
+  function closeTab() {
+    window.close();
+  }
+</script>
+
+{#if phase === 'ended'}
+  <AuthShell title={t('Support session ended')} lead={t('Nothing in this tab is signed in any more.')}>
+    <p class="muted">{t('Your own session in your other tabs is as it was.')}</p>
+    <div class="row">
+      <Button type="button" variant="primary" onclick={closeTab}>{t('Close this tab')}</Button>
+      <Button href={resolve('admin/people')}>{t('Back to the admin area')}</Button>
+    </div>
+  </AuthShell>
+{:else if phase === 'failed'}
+  <AuthShell title={t('Couldn’t start the support session')}>
+    <p role="alert">{problem}</p>
+    <div><Button type="button" onclick={closeTab}>{t('Close this tab')}</Button></div>
+  </AuthShell>
+{:else}
+  <AuthShell title={t('Starting the support session…')}>
+    <p class="row muted" role="status"><Spinner /> {t('One moment.')}</p>
+  </AuthShell>
+{/if}

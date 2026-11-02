@@ -1,0 +1,84 @@
+<!-- The admin area's front page: the counts (PRD R6.2). -->
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import { resolve } from '$app/paths';
+  import { api, type AdminStats } from '#lib/api/index.ts';
+  import { Task } from '#lib/task.svelte.ts';
+  import FormError from '#lib/components/FormError.svelte';
+  import { formatNumber, t } from '#lib/i18n/index.svelte.ts';
+
+  let stats = $state<AdminStats | null>(null);
+  const load = new Task();
+
+  onMount(() => {
+    load.run(async () => {
+      stats = await api.adminStats();
+    });
+  });
+
+  const tiles = $derived(
+    stats
+      ? [
+          { label: t('People'), value: stats.users, href: resolve('admin/people') },
+          { label: t('New this week'), value: stats.newUsers7d, href: resolve('admin/people') },
+          { label: t('Suspended'), value: stats.suspended, href: resolve('admin/people') },
+          ...(stats.teams === null ? [] : [{ label: t('Teams'), value: stats.teams, href: null }]),
+          { label: t('Open messages'), value: stats.openMessages, href: resolve('admin/messages') },
+          { label: t('Errors, last 24 hours'), value: stats.errors24h, href: resolve('admin/errors') },
+        ]
+      : [],
+  );
+</script>
+
+<h1>{t('Admin')}</h1>
+{#if stats}
+  <dl class="tiles">
+    {#each tiles as tile (tile.label)}
+      <div class="tile">
+        <dt class="muted small">{tile.label}</dt>
+        <dd>
+          {#if tile.href}<a href={tile.href}>{formatNumber(tile.value)}</a>{:else}{formatNumber(
+              tile.value,
+            )}{/if}
+        </dd>
+      </div>
+    {/each}
+  </dl>
+{:else if load.error}
+  <FormError message={load.error} />
+{:else}
+  <p class="muted">{t('Loading…')}</p>
+{/if}
+
+<style>
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+    gap: var(--space-3);
+    margin: 0;
+  }
+
+  .tile {
+    padding: var(--space-4) var(--space-5);
+    background: var(--color-base-100);
+    border: var(--border) solid var(--color-base-300);
+    border-radius: var(--radius-box);
+  }
+
+  dd {
+    margin: var(--space-1) 0 0;
+    color: var(--color-heading);
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  dd a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  dd a:hover {
+    text-decoration: underline;
+  }
+</style>

@@ -1,0 +1,68 @@
+# Checks every push and pull request, on GitHub's free runners and with no Cloudflare account:
+# the backend runs locally under `wrangler dev`, as it does on a laptop. Actions are pinned to a
+# commit (the tag beside it), so a moved tag can't change what runs.
+name: ci
+on: [push, pull_request]
+# Read the code, nothing else: no step here writes to the repo or its settings.
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: '*/package-lock.json'
+      - name: Contract (lint, types up to date, type check)
+        working-directory: contract
+        run: npm ci && npm run check && npm run types && git diff --exit-code types.ts app-types.ts
+      - name: Backend (type check, unit tests)
+        working-directory: backend-cloudflare
+        run: npm ci && npm run check && npm test
+      - name: Frontend (type check, lint, format, unit tests, build)
+        working-directory: frontend-sveltekit
+        run: npm ci && npm run check && npm run lint && npm run format:check && npm test && npm run build
+
+  contract:
+    needs: static
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [dev, 'dev:all']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: '*/package-lock.json'
+      - run: (cd contract && npm ci) && (cd backend-cloudflare && npm ci && npm run db:migrate)
+      - name: Start the backend
+        working-directory: backend-cloudflare
+        run: npm run ${{ matrix.mode }} > /tmp/worker.log 2>&1 &
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+      - name: Wait for it
+        run: for i in $(seq 60); do curl -sf http://localhost:8787/api/health && exit 0; sleep 1; done; exit 1
+      - name: Contract tests
+        working-directory: contract
+        run: npm test
+      # The browser tests need every option on, and the admin the contract tests made.
+      - name: Browser tests
+        if: matrix.mode == 'dev:all'
+        working-directory: frontend-sveltekit
+        env:
+          E2E_ADMIN_EMAIL: admin@example.test
+          E2E_ADMIN_PASSWORD: correct horse battery staple
+        run: npm ci && npx playwright install --with-deps chromium webkit && npm run e2e
+      - name: Backend log
+        if: failure()
+        run: cat /tmp/worker.log
