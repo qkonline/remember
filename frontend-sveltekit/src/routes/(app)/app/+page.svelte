@@ -1,6 +1,6 @@
 <!--
-  Today: how many cards to refresh, the next one on its stack and one key to start; the shelves
-  as pots; what comes up this week; and topics that reached their finish line. With nothing due:
+  Today: a windowsill of the cards due (pots waiting for water), how many and one key to start;
+  the shelves as pots on a plank; what comes up this week; and topics that reached their finish line. With nothing due:
   a calm "all caught up", or for a new person, an invitation to add what they studied.
 -->
 <script lang="ts">
@@ -14,8 +14,10 @@
     checkinsOf,
     finish,
     finishedLines,
+    growthOf,
     lastCheckInDay,
     memory,
+    shelfOf,
     type Topic,
   } from '#lib/app/store.svelte.ts';
   import {
@@ -33,10 +35,10 @@
   import Glyph from '#lib/app/ui/Glyph.svelte';
   import HorizonPicker from '#lib/app/ui/HorizonPicker.svelte';
   import Key from '#lib/app/ui/Key.svelte';
-  import Pot from '#lib/app/ui/Pot.svelte';
+  import GrowingPot from '#lib/app/ui/GrowingPot.svelte';
+  import Windowsill from '#lib/app/ui/Windowsill.svelte';
   import ShelfMark from '#lib/app/ui/ShelfMark.svelte';
   import Sheet from '#lib/app/ui/Sheet.svelte';
-  import TopicCard from '#lib/app/ui/TopicCard.svelte';
   import Track from '#lib/app/ui/Track.svelte';
 
   const today = $derived(memory.today);
@@ -51,6 +53,23 @@
       (a, x) => (x.due && x.due > today && (a === null || x.due < a) ? x.due : a),
       null,
     ),
+  );
+
+  /** The sill: today's cards waiting for water, or, on a calm day, the next few to come back. */
+  const sillPot = (x: Topic, thirsty: boolean) => ({
+    key: x.id,
+    shelf: shelfOf(x),
+    leaves: growthOf(x).done + 1,
+    label: x.title,
+    thirsty,
+  });
+  const duePots = $derived(list.now.slice(0, 5).map((x) => sillPot(x, true)));
+  const restingPots = $derived(
+    active
+      .filter((x) => x.due)
+      .sort((a, b) => (a.due ?? '').localeCompare(b.due ?? ''))
+      .slice(0, 4)
+      .map((x) => sillPot(x, false)),
   );
 
   const greeting = $derived.by(() => {
@@ -133,54 +152,70 @@
 
   <div class="td-grid">
     <div class="td-main">
-      <section class="td-hero" class:td-hero-stack={!!next} aria-label={t('Today')}>
-        <svg class="td-plant" width="120" height="120" viewBox="0 0 120 120" aria-hidden="true">
-          <path d="M14 82H120" class="td-ground" />
-          <path d="M76 82V36" class="td-stem" />
-          <path d="M76 48c0-14 10-22 26-22 0 14-10 22-26 22z" class="td-leaf-a" />
-          <path d="M76 60c0-11-8-18-21-18 0 11 8 18 21 18z" class="td-leaf-b" />
-          <path d="M56 82h40l-5 22H61z" class="td-pot" />
-        </svg>
-
+      <section class="td-hero" class:td-hero-due={!!next} class:td-hero-calm={!next} aria-label={t('Today')}>
         {#if !memory.loaded}
           <p class="td-sub" aria-live="polite">{t('Loading your topics…')}</p>
-        {:else if next}
-          <p class="td-count">
-            <span class="td-num">{list.now.length}</span>
-            <span class="td-what">
-              <span class="td-what-big">{tn(list.now.length, 'card to refresh', 'cards to refresh')}</span>
-              <span class="td-sub">
-                {welcomeBack
-                  ? t('Welcome back. These matter most today.')
-                  : tn(minutesFor(list.now.length), 'about 1 minute', 'about {count} minutes')}
-              </span>
-            </span>
-          </p>
-          <div class="td-stack"><TopicCard topic={next} /></div>
-          <div class="td-start">
-            <Key tone="leaf" big wide onclick={() => goto(resolve('/(app)/review'))}
-              ><Glyph name="play" size={18} />{t('Start refreshing')}</Key
-            >
-          </div>
-        {:else if memory.topics.length === 0}
-          <h2 class="td-calm">{t('Studied something today?')}</h2>
-          <p class="td-sub td-lead">
-            {t('Plant it here, choose how long you need it, and Remember brings it back on the right days.')}
-          </p>
-          <div class="td-start td-start-calm">
-            <Key tone="leaf" big onclick={() => startAdding()}
-              ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
-            >
-          </div>
         {:else}
-          <h2 class="td-calm">{t('All caught up')}</h2>
-          <p class="td-sub td-lead">
-            {tomorrow
-              ? tn(tomorrow, '1 card comes back tomorrow.', '{count} cards come back tomorrow.')
-              : nextDue
-                ? t('The next one comes back {when}.', { when: whenNext(nextDue, today) })
-                : t('Nothing is waiting. Add what you study next.')}
-          </p>
+          <div class="td-sill">
+            {#if next}
+              <Windowsill pots={duePots} more={Math.max(0, list.now.length - duePots.length)} />
+            {:else if memory.topics.length === 0}
+              <Windowsill seed />
+            {:else}
+              <Windowsill pots={restingPots} sun />
+            {/if}
+          </div>
+
+          <div class="td-text">
+            {#if next}
+              <p class="td-count">
+                <span class="td-num">{list.now.length}</span>
+                <span class="td-what">
+                  <span class="td-what-big">{tn(list.now.length, 'card to refresh', 'cards to refresh')}</span
+                  >
+                  <span class="td-sub">
+                    {welcomeBack
+                      ? t('Welcome back. These matter most today.')
+                      : tn(minutesFor(list.now.length), 'about 1 minute', 'about {count} minutes')}
+                  </span>
+                </span>
+              </p>
+              <p class="td-lead">
+                {t('Next up: {title}. Recall what you can, then check your notes.', { title: next.title })}
+              </p>
+              <div class="td-start">
+                <Key tone="leaf" big wide onclick={() => goto(resolve('/(app)/review'))}
+                  ><Glyph name="play" size={18} />{t('Start refreshing')}</Key
+                >
+              </div>
+            {:else if memory.topics.length === 0}
+              <h2 class="td-calm">{t('Studied something today?')}</h2>
+              <p class="td-lead">
+                {t(
+                  'Plant it here, choose how long you need it, and Remember brings it back on the right days.',
+                )}
+              </p>
+              <div class="td-start">
+                <Key tone="leaf" big onclick={() => startAdding()}
+                  ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
+                >
+              </div>
+            {:else}
+              <h2 class="td-calm">{t('All caught up')}</h2>
+              <p class="td-lead">
+                {tomorrow
+                  ? tn(tomorrow, '1 card comes back tomorrow.', '{count} cards come back tomorrow.')
+                  : nextDue
+                    ? t('The next one comes back {when}.', { when: whenNext(nextDue, today) })
+                    : t('Nothing is waiting. Add what you study next.')}
+              </p>
+              <div class="td-start">
+                <Key onclick={() => startAdding()}
+                  ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
+                >
+              </div>
+            {/if}
+          </div>
         {/if}
       </section>
 
@@ -236,7 +271,7 @@
             {#each pots as p (p.shelf?.id ?? 'none')}
               <li>
                 <a href={p.href}>
-                  <Pot shelf={p.shelf} />
+                  <GrowingPot shelf={p.shelf} leaves={Math.min(6, p.count)} size={56} />
                   <span class="td-pot-name">{p.shelf?.name ?? t('No shelf')}</span>
                   <span class="td-pot-due">
                     {p.due ? tn(p.due, '1 due', '{count} due') : p.count ? t('Caught up') : t('Empty')}
@@ -245,6 +280,7 @@
               </li>
             {/each}
           </ul>
+          <span class="td-plank" aria-hidden="true"></span>
         </section>
       {/if}
     </div>
@@ -324,60 +360,32 @@
     gap: 1.75rem;
   }
 
+  /* The hero: the windowsill and the words beside it (stacked on phones, sill first). */
   .td-hero {
-    position: relative;
     display: grid;
-    gap: 1rem;
-    padding: 1.25rem;
+    gap: 1.25rem;
+    padding: 1rem 1rem 1.5rem;
     border: 1px solid var(--color-base-300);
-    border-radius: 24px;
-    overflow: hidden;
+    border-radius: 26px;
   }
-  .td-plant {
-    position: absolute;
-    right: 0;
-    top: 0;
+  .td-text {
+    display: grid;
+    gap: 0.75rem;
+    align-content: center;
+    padding: 0 0.25rem;
   }
-  .td-hero-stack .td-plant {
-    top: -0.25rem;
-  }
-  .td-ground {
-    stroke: var(--color-base-300);
-    stroke-width: 1.2;
-  }
-  .td-stem {
-    stroke: var(--color-leaf-line);
-    stroke-width: 2;
-    stroke-linecap: round;
-  }
-  .td-leaf-a,
-  .td-leaf-b {
-    stroke: var(--color-leaf-line);
-    stroke-width: 1.6;
-    stroke-linejoin: round;
-  }
-  .td-leaf-a {
-    fill: var(--color-leaf-soft);
-  }
-  .td-leaf-b {
-    fill: var(--color-leaf-tint);
-  }
-  .td-pot {
-    fill: light-dark(#fecdd3, #4a1f27);
-    stroke: light-dark(#9f1239, #fda4af);
-    stroke-width: 1.4;
-    stroke-linejoin: round;
+  .td-hero-calm .td-text {
+    justify-items: center;
+    text-align: center;
   }
   .td-count {
-    position: relative;
     display: flex;
     align-items: flex-end;
     gap: 0.75rem;
     margin: 0;
-    padding-right: 5.5rem;
   }
   .td-num {
-    font-size: 5rem;
+    font-size: 4.5rem;
     line-height: 0.8;
     font-weight: 500;
     letter-spacing: -0.04em;
@@ -399,27 +407,20 @@
     font-size: 0.9375rem;
   }
   .td-lead {
-    position: relative;
-    max-width: 34ch;
+    margin: 0;
+    max-width: 38ch;
+    color: var(--color-muted);
+    line-height: 1.5;
   }
   .td-calm {
-    position: relative;
-    margin: 0.5rem 0 0;
-    padding-right: 5.5rem;
+    margin: 0;
     font-size: 1.625rem;
     line-height: 1.2;
     font-weight: 600;
     color: var(--color-heading);
   }
-  .td-stack {
-    position: relative;
-    margin: 0.5rem 0.5rem 0;
-  }
   .td-start {
-    position: relative;
-  }
-  .td-start-calm {
-    justify-self: start;
+    margin-top: 0.75rem;
   }
   .td-later {
     margin: 0.875rem 0.25rem 0;
@@ -449,18 +450,26 @@
   .td-pots {
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 0.25rem;
     display: flex;
-    gap: 0.75rem;
+    align-items: flex-end;
+    gap: 0.5rem;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+  .td-plank {
+    display: block;
+    height: 0.625rem;
+    border-radius: 4px;
+    background: light-dark(#e3d5bc, #4a4234);
+    box-shadow: inset 0 3px 0 light-dark(#efe5d3, #5a5141);
   }
   .td-pots a {
     display: grid;
     justify-items: center;
-    gap: 0.1875rem;
+    gap: 0.0625rem;
     width: 5.25rem;
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.25rem 0.25rem;
     border-radius: 16px;
     text-decoration: none;
     color: var(--color-heading);
@@ -557,27 +566,6 @@
     color: var(--color-muted);
   }
 
-  /* Phones and tablets: the calm states (nothing yet, all caught up) stand centred, the plant
-     above the words and the key under them. */
-  @media (max-width: 63.99rem) {
-    .td-hero:not(.td-hero-stack) {
-      justify-items: center;
-      text-align: center;
-      padding-block: 1.5rem 1.75rem;
-    }
-    .td-hero:not(.td-hero-stack) .td-plant {
-      position: static;
-      margin-bottom: -1.25rem;
-    }
-    .td-hero:not(.td-hero-stack) .td-calm {
-      padding-right: 0;
-      margin-top: 0;
-    }
-    .td-start-calm {
-      justify-self: center;
-    }
-  }
-
   @media (min-width: 40rem) {
     .td-head h1 {
       font-size: 2rem;
@@ -588,56 +576,38 @@
   }
 
   @media (min-width: 64rem) {
-    .td-grid {
+    .td-grid:has(.td-week) {
       grid-template-columns: minmax(0, 1fr) 22rem;
       gap: 1.75rem;
     }
+    .td-grid:not(:has(.td-week)) {
+      max-width: 52rem;
+    }
     .td-hero {
-      padding: 2rem;
-      min-height: 19rem;
-      align-content: start;
+      grid-template-columns: minmax(0, 1fr) minmax(17rem, 24rem);
+      gap: 2rem;
+      padding: 1.5rem 1.5rem 1.5rem 2rem;
+      min-height: 17rem;
     }
-    .td-hero-stack {
-      grid-template-columns: minmax(0, 1fr) minmax(16rem, 20rem);
-      grid-template-rows: auto 1fr;
-      grid-template-areas:
-        'count stack'
-        'start stack';
-      column-gap: 2rem;
-    }
-    .td-hero-stack .td-plant {
-      display: none;
-    }
-    .td-hero-stack .td-count {
-      grid-area: count;
-      padding-right: 0;
-    }
-    .td-hero-stack .td-stack {
-      grid-area: stack;
-      align-self: center;
-      margin: 0;
-    }
-    .td-hero-stack .td-start {
-      grid-area: start;
+    .td-sill {
+      order: 2;
       align-self: end;
-      max-width: 17rem;
+    }
+    .td-hero-calm .td-text {
+      justify-items: start;
+      text-align: start;
     }
     .td-num {
-      font-size: 6.5rem;
+      font-size: 6rem;
     }
     .td-what-big {
       font-size: 1.375rem;
     }
-    .td-pots {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
-      overflow: visible;
+    .td-start {
+      max-width: 17rem;
     }
-    .td-pots a {
-      width: auto;
-      padding: 1rem 0.5rem;
-      border: 1px solid var(--color-base-300);
-      border-radius: 20px;
+    .td-pots {
+      overflow: visible;
     }
   }
 </style>

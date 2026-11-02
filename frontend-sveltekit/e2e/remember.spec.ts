@@ -56,7 +56,7 @@ test('plant on shelves, refresh one card at a time, undo, and find it on its she
   await sheet.getByRole('radio', { name: 'Earlier' }).check();
   await sheet.getByRole('button', { name: 'Plant it' }).click();
   await expect(page.getByText('card to refresh')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Photosynthesis' })).toBeVisible();
+  await expect(page.getByText('Next up: Photosynthesis.', { exact: false })).toBeVisible();
 
   // Refresh: notes only on request. Forgot opens them; Undo brings the card back.
   await page.getByRole('button', { name: 'Start refreshing' }).click();
