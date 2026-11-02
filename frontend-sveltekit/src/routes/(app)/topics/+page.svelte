@@ -13,20 +13,13 @@
   import { t, tn } from '#lib/i18n/index.svelte.ts';
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
-  import Modal from '#lib/components/ui/Modal.svelte';
-  import Button from '#lib/components/ui/Button.svelte';
-  import {
-    deleteShelf,
-    editShelf,
-    memory,
-    SHELF_COLORS,
-    type Shelf,
-    type ShelfColor,
-  } from '#lib/app/store.svelte.ts';
+  import { memory, type Shelf } from '#lib/app/store.svelte.ts';
   import { startAdding } from '#lib/app/ui.svelte.ts';
   import Glyph from '#lib/app/ui/Glyph.svelte';
   import Key from '#lib/app/ui/Key.svelte';
   import GrowingPot from '#lib/app/ui/GrowingPot.svelte';
+  import ShelfMark from '#lib/app/ui/ShelfMark.svelte';
+  import ShelfSheet from '#lib/app/ui/ShelfSheet.svelte';
   import Sheet from '#lib/app/ui/Sheet.svelte';
   import TopicDetail from '#lib/app/ui/TopicDetail.svelte';
   import TopicRow from '#lib/app/ui/TopicRow.svelte';
@@ -121,40 +114,20 @@
     syncUrl();
   }
 
-  // Edit a shelf
-  let editingShelf = $state(false);
-  let shelfName = $state('');
-  let shelfColor = $state<ShelfColor>('green');
-  let confirmRemove = $state(false);
-  const nameProblem = $derived(shelfName.trim() ? null : 'Name the shelf.');
-  function startEditShelf() {
-    if (!current) return;
-    shelfName = current.name;
-    shelfColor = current.color;
-    editingShelf = true;
+  // Shelves: make, change, remove (ShelfSheet), and the list of them all.
+  let shelfOpen = $state(false);
+  let shelfEditing = $state<Shelf | null>(null);
+  let manageOpen = $state(false);
+  function newShelf() {
+    shelfEditing = null;
+    manageOpen = false;
+    shelfOpen = true;
   }
-  async function saveShelf(e: SubmitEvent) {
-    e.preventDefault();
-    if (!current || nameProblem) return;
-    await editShelf(current.id, { name: shelfName, color: shelfColor });
-    editingShelf = false;
+  function editShelfSheet(s: Shelf) {
+    shelfEditing = s;
+    manageOpen = false;
+    shelfOpen = true;
   }
-  async function removeShelf() {
-    if (!current) return;
-    await deleteShelf(current.id);
-    confirmRemove = false;
-    editingShelf = false;
-    shelfFilter = null;
-    syncUrl();
-  }
-  const colorName: Record<ShelfColor, string> = {
-    green: 'Green',
-    rose: 'Rose',
-    yellow: 'Yellow',
-    fuchsia: 'Fuchsia',
-    lime: 'Lime',
-    sand: 'Sand',
-  };
 </script>
 
 <svelte:head><title>{t('Shelves')} · {appName}</title></svelte:head>
@@ -164,9 +137,14 @@
     <header class="sv-head">
       <h1>{t('Shelves')}</h1>
       <span class="sv-total">{tn(memory.topics.length, '1 topic', '{count} topics')}</span>
+      {#if memory.topics.length || memory.shelves.length}
+        <button type="button" class="sv-manage-open" onclick={() => (manageOpen = true)}
+          ><Glyph name="edit" size={16} />{t('Manage shelves')}</button
+        >
+      {/if}
     </header>
 
-    {#if memory.loaded && memory.topics.length === 0}
+    {#if memory.loaded && memory.topics.length === 0 && memory.shelves.length === 0}
       <section class="sv-blank" aria-labelledby="blank-title">
         <div class="sv-blank-shelf" aria-hidden="true">
           <div class="sv-blank-pots">
@@ -182,9 +160,12 @@
             'Add the first thing you studied. Put it on a shelf like Biology or Law, and it grows here as you check in.',
           )}
         </p>
-        <Key tone="leaf" big onclick={() => startAdding()}
-          ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
-        >
+        <div class="sv-blank-keys">
+          <Key tone="leaf" big onclick={() => startAdding()}
+            ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
+          >
+          <Key big onclick={newShelf}>{t('Make a shelf first')}</Key>
+        </div>
       </section>
     {:else}
       <section class="sv-shelf" aria-label={t('Shelves')}>
@@ -199,10 +180,10 @@
             </li>
           {/each}
           <li>
-            <button type="button" class="sv-new" onclick={() => startAdding('new')}>
+            <button type="button" class="sv-new" onclick={newShelf}>
               <span class="sv-new-pot" aria-hidden="true"><Glyph name="plus" size={20} /></span>
               <span class="sv-pot-name">{t('New shelf')}</span>
-              <span class="sv-pot-n">{t('Start one')}</span>
+              <span class="sv-pot-n">{t('Make one')}</span>
             </button>
           </li>
         </ul>
@@ -226,7 +207,7 @@
       {#if current}
         <div class="sv-shelf-bar">
           <span>{t('Only {shelf}', { shelf: current.name })}</span>
-          <button type="button" onclick={startEditShelf}
+          <button type="button" onclick={() => current && editShelfSheet(current)}
             ><Glyph name="edit" size={16} />{t('Edit shelf')}</button
           >
           <button type="button" onclick={() => startAdding(current.id)}
@@ -284,47 +265,53 @@
   {/if}
 </div>
 
-{#if current}
-  <Sheet title={t('Edit shelf')} bind:open={editingShelf}>
-    <form id="edit-shelf" class="sv-form" onsubmit={saveShelf} novalidate>
-      <Field label={t('Name')} invalid={!!nameProblem} hint={nameProblem ? t(nameProblem) : undefined}>
-        <Input bind:value={shelfName} maxlength={40} autocomplete="off" />
-      </Field>
-      <fieldset class="sv-colors">
-        <legend>{t('Colour')}</legend>
-        <div>
-          {#each SHELF_COLORS as c (c)}
-            <label class="sv-color shelf-{c}" class:sv-color-on={shelfColor === c}>
-              <input type="radio" name="shelf-color" value={c} bind:group={shelfColor} />
-              <span class="sv-swatch" aria-hidden="true"></span>
-              <span class="sv-color-name">{t(colorName[c])}</span>
-            </label>
-          {/each}
-        </div>
-      </fieldset>
-      <button type="button" class="sv-remove" onclick={() => (confirmRemove = true)}
-        >{t('Remove this shelf')}</button
-      >
-    </form>
-    {#snippet foot()}
-      <Key tone="leaf" big wide type="submit" form="edit-shelf">{t('Save shelf')}</Key>
-    {/snippet}
-  </Sheet>
+<ShelfSheet
+  bind:open={shelfOpen}
+  shelf={shelfEditing}
+  oncreated={(id) => {
+    shelfFilter = id;
+    syncUrl();
+  }}
+  onremoved={() => {
+    shelfFilter = null;
+    syncUrl();
+  }}
+/>
 
-  <Modal title={t('Remove {shelf}?', { shelf: current.name })} bind:open={confirmRemove}>
-    <p>{t('Its topics stay, on no shelf, with all their check-ins.')}</p>
-    {#snippet actions()}
-      <Button onclick={() => (confirmRemove = false)}>{t('Keep it')}</Button>
-      <Button variant="danger-solid" onclick={removeShelf}>{t('Remove shelf')}</Button>
-    {/snippet}
-  </Modal>
-{/if}
+<Sheet title={t('Your shelves')} bind:open={manageOpen}>
+  {#if memory.shelves.length}
+    <ul class="sv-manage">
+      {#each memory.shelves as s (s.id)}
+        <li>
+          <ShelfMark shelf={s} size={36} />
+          <span class="sv-manage-text">
+            <span class="sv-manage-name">{s.name}</span>
+            <span class="sv-manage-n"
+              >{tn(memory.topics.filter((x) => x.shelf === s.id).length, '1 topic', '{count} topics')}</span
+            >
+          </span>
+          <button
+            type="button"
+            onclick={() => editShelfSheet(s)}
+            aria-label={t('Edit {shelf}', { shelf: s.name })}
+            ><Glyph name="edit" size={16} />{t('Edit')}</button
+          >
+        </li>
+      {/each}
+    </ul>
+  {:else}
+    <p class="sv-manage-none">{t('No shelves yet. Make one for each subject, like Biology or Law.')}</p>
+  {/if}
+  {#snippet foot()}
+    <Key tone="leaf" big wide onclick={newShelf}><Glyph name="plus" size={18} />{t('New shelf')}</Key>
+  {/snippet}
+</Sheet>
 
 <style>
   .sv-head {
     display: flex;
     align-items: baseline;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 1rem;
     margin: 0.25rem 0 0.875rem;
   }
@@ -367,6 +354,12 @@
     height: 2.75rem;
     border: 1.5px dashed var(--color-border-strong);
     border-radius: 6px 6px 14px 14px;
+  }
+  .sv-blank-keys {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
   }
   .sv-blank h2 {
     margin: 0.75rem 0 0;
@@ -479,8 +472,7 @@
   }
   .sv-pots button:focus-visible,
   .sv-seg button:focus-visible,
-  .sv-shelf-bar button:focus-visible,
-  .sv-remove:focus-visible {
+  .sv-shelf-bar button:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
@@ -558,72 +550,74 @@
     padding: 0;
   }
 
-  .sv-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
+  .sv-manage-open {
+    margin-inline-start: auto;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    padding: 0 0.875rem;
+    border: 1px solid var(--color-base-300);
+    border-radius: 999px;
+    background: var(--color-base-100);
+    color: var(--color-base-content);
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
   }
-  .sv-colors {
-    border: 0;
+  .sv-manage-open:hover {
+    border-color: var(--color-leaf-line);
+  }
+  .sv-manage {
+    list-style: none;
     margin: 0;
     padding: 0;
   }
-  .sv-colors legend {
-    font-weight: 500;
-    font-size: 0.9375rem;
-    margin-bottom: 0.625rem;
-  }
-  .sv-colors div {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-  .sv-color {
-    position: relative;
+  .sv-manage li {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--color-base-300);
+  }
+  .sv-manage-text {
+    flex: 1;
+    display: grid;
+    min-width: 0;
+  }
+  .sv-manage-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sv-manage-n {
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+  }
+  .sv-manage button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
     min-height: 2.75rem;
-    padding: 0 0.625rem;
+    padding: 0 0.875rem;
     border: 1px solid var(--color-base-300);
-    border-radius: 12px;
+    border-radius: 999px;
+    background: var(--color-base-100);
+    color: var(--color-base-content);
+    font: inherit;
+    font-size: 0.875rem;
     cursor: pointer;
   }
-  .sv-color input {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
+  .sv-manage-none {
     margin: 0;
-    cursor: pointer;
+    color: var(--color-muted);
   }
-  .sv-color:has(input:focus-visible) {
+  .sv-manage-open:focus-visible,
+  .sv-manage button:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
-  }
-  .sv-color-on {
-    border: 1.5px solid var(--color-leaf-line);
-    background: var(--color-leaf-tab);
-  }
-  .sv-swatch {
-    width: 1.375rem;
-    height: 1.375rem;
-    border-radius: 7px;
-    background: var(--sh-pot);
-    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
-  }
-  .sv-color-name {
-    font-size: 0.875rem;
-  }
-  .sv-remove {
-    align-self: flex-start;
-    min-height: 2.75rem;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: light-dark(#be123c, #fb7185);
-    font: inherit;
-    font-weight: 500;
-    cursor: pointer;
   }
 
   @media (min-width: 64rem) {

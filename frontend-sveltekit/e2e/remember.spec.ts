@@ -120,3 +120,34 @@ test('on a phone: the tab bar moves between pages and its + key opens the Add sh
   await tabs.getByRole('button', { name: 'Add what you studied' }).click();
   await expect(page.getByRole('dialog', { name: 'Plant something new' })).toBeVisible();
 });
+
+test('shelves: make one, rename and recolour it, and remove it', async ({ page }) => {
+  await signUp(page, uniqueEmail('shelves'), 'correct horse battery');
+  await page.getByRole('link', { name: 'Shelves' }).first().click();
+  await page.getByRole('button', { name: 'Make a shelf first' }).click();
+  let sheet = page.getByRole('dialog', { name: 'New shelf' });
+  await sheet.getByLabel('Name').fill('Biology');
+  await sheet.getByRole('button', { name: 'Make shelf' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Made the Biology shelf.' })).toBeVisible();
+  await expect(page.getByText('Only Biology')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Manage shelves' }).click();
+  await page.getByRole('button', { name: 'Edit Biology' }).click();
+  sheet = page.getByRole('dialog', { name: 'Edit shelf' });
+  await sheet.getByLabel('Name').fill('Cell biology');
+  await sheet.getByRole('radio', { name: 'Rose' }).check();
+  await sheet.getByRole('button', { name: 'Save shelf' }).click();
+  await expect(page.getByText('Only Cell biology')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Edit shelf' }).click();
+  await page
+    .getByRole('dialog', { name: 'Edit shelf' })
+    .getByRole('button', { name: 'Remove this shelf' })
+    .click();
+  await page
+    .getByRole('dialog', { name: 'Remove Cell biology?' })
+    .getByRole('button', { name: 'Remove shelf' })
+    .click();
+  await expect(page.getByRole('status').filter({ hasText: 'Removed Cell biology.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'An empty shelf, ready to grow' })).toBeVisible();
+});
