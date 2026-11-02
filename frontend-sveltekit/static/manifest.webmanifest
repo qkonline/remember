@@ -1,16 +1,31 @@
 {
-  "name": "Starter",
-  "short_name": "Starter",
-  "description": "Replace with what the app does, in one line.",
+  "name": "Remember",
+  "short_name": "Remember",
+  "description": "Remember what you study for as long as you need it: one calm list a day of what to recall.",
   "id": "/",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f6f9fc",
-  "theme_color": "#f6f9fc",
+  "background_color": "#f4f5f7",
+  "theme_color": "#f4f5f7",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
