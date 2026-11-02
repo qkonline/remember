@@ -12,6 +12,8 @@ import type { Ctx } from '../env';
 import { forbidden, invalid, lastAdmin, notFound, Refusal, tooMany } from '../errors';
 import { DAY, limit } from '../limits';
 import { sendMail, trHtml } from '../mail';
+// Remember: its own look for the emails (src/app/mail.ts). A hand-made change to this core file.
+import { button, page, para } from '../app/mail';
 import { tr } from '../i18n';
 import { needsConfirmedEmail, requireFeature, requireUser, type AppEnv } from '../middleware';
 import { notify } from '../notify';
@@ -97,10 +99,11 @@ async function mailInvite(ctx: Ctx, i: { email: string; role: Role; by_name: str
     to: i.email,
     subject: tr(lang, '{who} invited you to {team} on {app}', vars),
     text: `${tr(lang, '{who} invited you to join {team} on {app} as {role}.', vars)}\n\n${join}: ${link}\n\n${after}`,
-    html:
-      `<p style="font:16px/1.5 system-ui,sans-serif">${trHtml(lang, '{who} invited you to join {team} on {app} as {role}.', vars, ['team'])}</p>` +
-      `<p><a href="${esc(link)}" style="display:inline-block;font:600 15px system-ui,sans-serif;background:#16181d;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none">${esc(join)}</a></p>` +
-      `<p style="font:14px/1.5 system-ui,sans-serif;color:#5b6170">${esc(after)}</p>`,
+    html: page(ctx, {
+      preheader: tr(lang, '{who} invited you to {team} on {app}', vars),
+      heading: tr(lang, '{who} invited you to {team} on {app}', vars),
+      body: para(trHtml(lang, '{who} invited you to join {team} on {app} as {role}.', vars, ['team'])) + button(link, join) + para(esc(after), true),
+    }),
   });
 }
 

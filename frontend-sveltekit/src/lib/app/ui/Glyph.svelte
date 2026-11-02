@@ -24,7 +24,8 @@
     | 'cross'
     | 'wave'
     | 'down'
-    | 'edit';
+    | 'edit'
+    | 'message';
 
   let { name, size = 22 }: { name: GlyphName; size?: number } = $props();
 </script>
@@ -100,6 +101,11 @@
     <path d="M6.5 6.5l9 9M15.5 6.5l-9 9" class="gl-ink gl-thick" />
   {:else if name === 'wave'}
     <path d="M4 12c2-2.6 3.8-2.6 5.8 0s3.8 2.6 5.8 0 3.2-2 3.2-2" class="gl-ink gl-none gl-thick" />
+  {:else if name === 'message'}
+    <path d="M4 5.5h14v9.5H9l-4 3.5V15H4z" class="gl-fill" stroke-linejoin="round" /><path
+      d="M7.5 9h7M7.5 11.5h4.5"
+      class="gl-line"
+    />
   {:else if name === 'edit'}
     <path d="M4.5 17.5l1-4L14 5l3 3-8.5 8.5z" class="gl-fill" stroke-linejoin="round" />
   {/if}

@@ -77,7 +77,14 @@
     </header>
 
     <aside class="rf-side" aria-label={t('Remember')}>
-      <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={28} />{appName}</a>
+      <div class="rf-side-top">
+        <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={28} />{appName}</a>
+        <div class="rf-tools rf-side-tools">
+          {#if auth.features?.sync}<SyncStatus />{/if}
+          <ModeSwitch />
+          <Bell />
+        </div>
+      </div>
       <Key tone="leaf" wide onclick={() => startAdding()}>
         <Glyph name="plus" size={18} />{t('Add what you studied')}
       </Key>
@@ -105,18 +112,20 @@
         {/if}
       </nav>
       <div class="rf-me">
-        <div class="rf-tools">
-          {#if auth.features?.sync}<SyncStatus />{/if}
-          <ModeSwitch />
-          <Bell />
-        </div>
-        <a class="rf-person" href={resolve('/(app)/account')}>
-          <Avatar {user} size={34} />
-          <span>{user.name || user.email}</span>
+        <button type="button" class="rf-row" onclick={() => feedback?.show()}>
+          <Glyph name="message" /><span>{t('Send feedback')}</span>
+        </button>
+        <a
+          class="rf-person"
+          href={resolve('/(app)/account')}
+          aria-current={here === resolve('/(app)/account') ? 'page' : undefined}
+        >
+          <Avatar {user} size={36} />
+          <span class="rf-person-text">
+            <span class="rf-person-name">{user.name || t('Your account')}</span>
+            <span class="rf-person-mail">{user.email}</span>
+          </span>
         </a>
-        <p class="rf-small">
-          <button type="button" onclick={() => feedback?.show()}>{t('Send feedback')}</button>
-        </p>
       </div>
     </aside>
   {/if}
@@ -205,6 +214,26 @@
     --sh-ink: light-dark(#57534e, #d6d3d1);
   }
 
+  /* The core's plain dialogs (feedback): centred, padded and sized, with a soft backdrop. */
+  :global(dialog.pop:not(.modal)[open]) {
+    margin: auto;
+    width: min(30rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    box-sizing: border-box;
+    padding: 1.5rem;
+    border-radius: 24px;
+    color: var(--color-base-content);
+  }
+  :global(dialog.pop:not(.modal)::backdrop) {
+    background: var(--color-scrim);
+  }
+  :global(dialog.pop:not(.modal) h2) {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-heading);
+  }
+
   .rf {
     min-height: 100dvh;
     background: var(--color-base-100);
@@ -239,6 +268,9 @@
     font-weight: 600;
     font-size: 1.0625rem;
     text-decoration: none;
+  }
+  .rf-tools :global(.bell .icon) {
+    color: var(--color-leaf-line);
   }
   .rf-tools {
     margin-inline-start: auto;
@@ -367,6 +399,8 @@
     .rf-side {
       position: sticky;
       top: 0;
+      /* Above the page, so the bell's list (inside the sidebar) opens over it. */
+      z-index: 30;
       height: 100dvh;
       box-sizing: border-box;
       display: flex;
@@ -418,53 +452,82 @@
       font-weight: 500;
       text-align: center;
     }
+    .rf-side-top {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .rf-side-tools {
+      margin-inline-start: auto;
+      gap: 0;
+    }
+    /* The bell's list opens down and to the right, over the page, not off the screen's edge. */
+    .rf-side :global(.bell .panel) {
+      left: 0;
+      right: auto;
+    }
     .rf-me {
       margin-top: auto;
       display: grid;
-      gap: 0.75rem;
+      gap: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--color-base-300);
     }
-    .rf-me .rf-tools {
-      margin: 0;
+    .rf-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      min-height: 2.75rem;
+      padding: 0 0.75rem;
+      border: 0;
+      border-radius: 12px;
+      background: none;
+      color: var(--color-muted);
+      font: inherit;
+      text-align: start;
+      cursor: pointer;
+    }
+    .rf-row:hover {
+      background: var(--color-base-200);
+      color: var(--color-heading);
+    }
+    .rf-row:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
     }
     .rf-person {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
-      min-height: 2.75rem;
-      padding: 0 0.375rem;
-      border-radius: 12px;
+      gap: 0.75rem;
+      padding: 0.5rem 0.625rem;
+      border: 1px solid var(--color-base-300);
+      border-radius: 16px;
       color: var(--color-heading);
-      font-size: 0.875rem;
       text-decoration: none;
-      overflow: hidden;
+      min-width: 0;
     }
-    .rf-person span {
+    .rf-person:hover,
+    .rf-person[aria-current='page'] {
+      background: var(--color-leaf-tab);
+      border-color: var(--color-leaf-soft);
+    }
+    .rf-person-text {
+      display: grid;
+      min-width: 0;
+    }
+    .rf-person-name {
+      font-size: 0.9375rem;
+      font-weight: 500;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .rf-person:hover {
-      background: var(--color-base-200);
-    }
-    .rf-small {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem 0.875rem;
-      margin: 0;
-      padding: 0 0.375rem;
-      font-size: 0.8125rem;
-    }
-    .rf-small button {
+    .rf-person-mail {
+      font-size: 0.75rem;
       color: var(--color-muted);
-      background: none;
-      border: 0;
-      padding: 0;
-      font: inherit;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .rf-small button:hover {
-      text-decoration: underline;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .rf-page {
       padding-bottom: 0;

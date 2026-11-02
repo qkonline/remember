@@ -5,6 +5,8 @@ import type { Ctx } from './env';
 import { alert } from './alerts';
 import { Refusal } from './errors';
 import { tr, type Vars } from './i18n';
+// Remember: its own look for the emails (src/app/mail.ts). A hand-made change to this core file.
+import { codeBoxes, page, para } from './app/mail';
 
 export interface Mail {
   to: string;
@@ -78,10 +80,11 @@ export function codeMail(ctx: Ctx, to: string, code: string, purpose: string): M
     to,
     subject: tr(lang, 'Your {app} code is {code}', { app, code }),
     text: `${tr(lang, 'Your {app} code is {code}', { app, code })}\n\n${after}`,
-    html:
-      `<p style="font:16px/1.5 system-ui,sans-serif">${trHtml(lang, 'Your {app} code is', { app })}</p>` +
-      `<p style="font:600 28px/1.2 system-ui,sans-serif;letter-spacing:4px">${code}</p>` +
-      `<p style="font:14px/1.5 system-ui,sans-serif;color:#5b6170">${esc(after)}</p>`,
+    html: page(ctx, {
+      preheader: tr(lang, 'Your {app} code is {code}', { app, code }),
+      heading: tr(lang, 'Your {app} code is', { app }),
+      body: codeBoxes(code) + para(esc(after), true),
+    }),
   };
 }
 
@@ -99,6 +102,10 @@ export function movedMail(ctx: Ctx, to: string, next: string): Mail {
     to,
     subject: tr(lang, 'Your {app} email address was changed', { app }),
     text,
-    html: `<p style="font:16px/1.5 system-ui,sans-serif">${esc(text)}</p>`,
+    html: page(ctx, {
+      preheader: tr(lang, 'Your {app} email address was changed', { app }),
+      heading: tr(lang, 'Your {app} email address was changed', { app }),
+      body: para(esc(text)),
+    }),
   };
 }
