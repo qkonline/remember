@@ -26,7 +26,7 @@
   import { startAdding } from '#lib/app/ui.svelte.ts';
   import Glyph from '#lib/app/ui/Glyph.svelte';
   import Key from '#lib/app/ui/Key.svelte';
-  import Pot from '#lib/app/ui/Pot.svelte';
+  import GrowingPot from '#lib/app/ui/GrowingPot.svelte';
   import Sheet from '#lib/app/ui/Sheet.svelte';
   import TopicDetail from '#lib/app/ui/TopicDetail.svelte';
   import TopicRow from '#lib/app/ui/TopicRow.svelte';
@@ -167,11 +167,48 @@
     </header>
 
     {#if memory.loaded && memory.topics.length === 0}
-      <p class="sv-empty">{t('Nothing here yet. Add the first thing you studied and it grows here.')}</p>
-      <Key tone="leaf" big onclick={() => startAdding()}
-        ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
-      >
+      <section class="sv-blank" aria-labelledby="blank-title">
+        <div class="sv-blank-shelf" aria-hidden="true">
+          <div class="sv-blank-pots">
+            <span class="sv-ghost-pot"></span>
+            <GrowingPot color="green" leaves={0} size={70} letter={false} />
+            <span class="sv-ghost-pot"></span>
+          </div>
+          <span class="sv-plank"></span>
+        </div>
+        <h2 id="blank-title">{t('An empty shelf, ready to grow')}</h2>
+        <p>
+          {t(
+            'Add the first thing you studied. Put it on a shelf like Biology or Law, and it grows here as you check in.',
+          )}
+        </p>
+        <Key tone="leaf" big onclick={() => startAdding()}
+          ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
+        >
+      </section>
     {:else}
+      <section class="sv-shelf" aria-label={t('Shelves')}>
+        <ul class="sv-pots">
+          {#each pots as p (p.id)}
+            <li>
+              <button type="button" aria-pressed={shelfFilter === p.id} onclick={() => pickShelf(p.id)}>
+                <GrowingPot shelf={p.shelf} leaves={Math.min(6, p.count)} size={64} />
+                <span class="sv-pot-name">{p.name}</span>
+                <span class="sv-pot-n">{tn(p.count, '1 topic', '{count} topics')}</span>
+              </button>
+            </li>
+          {/each}
+          <li>
+            <button type="button" class="sv-new" onclick={() => startAdding('new')}>
+              <span class="sv-new-pot" aria-hidden="true"><Glyph name="plus" size={20} /></span>
+              <span class="sv-pot-name">{t('New shelf')}</span>
+              <span class="sv-pot-n">{t('Start one')}</span>
+            </button>
+          </li>
+        </ul>
+        <span class="sv-plank" aria-hidden="true"></span>
+      </section>
+
       <div class="sv-search">
         <Field label={t('Search your topics')} hideLabel>
           <Input
@@ -185,20 +222,6 @@
         <span class="sv-search-icon" aria-hidden="true"><Glyph name="search" size={18} /></span>
         {#if wide}<kbd class="sv-kbd" aria-hidden="true">/</kbd>{/if}
       </div>
-
-      {#if pots.length}
-        <ul class="sv-pots" aria-label={t('Shelves')}>
-          {#each pots as p (p.id)}
-            <li>
-              <button type="button" aria-pressed={shelfFilter === p.id} onclick={() => pickShelf(p.id)}>
-                <Pot shelf={p.shelf} size={68} />
-                <span class="sv-pot-name">{p.name}</span>
-                <span class="sv-pot-n">{tn(p.count, '1 topic', '{count} topics')}</span>
-              </button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
 
       {#if current}
         <div class="sv-shelf-bar">
@@ -316,6 +339,47 @@
     color: var(--color-muted);
     font-size: 0.875rem;
   }
+  /* Nothing yet: an empty shelf with a seed pot, then the words, then the key. */
+  .sv-blank {
+    display: grid;
+    justify-items: center;
+    gap: 0.75rem;
+    padding: 2rem 1.25rem 2.25rem;
+    border: 1px solid var(--color-base-300);
+    border-radius: 24px;
+    text-align: center;
+  }
+  .sv-blank-shelf {
+    width: min(100%, 18rem);
+  }
+  .sv-blank-pots {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  .sv-blank .sv-plank {
+    margin: 0;
+    border-radius: 6px;
+  }
+  .sv-ghost-pot {
+    width: 3rem;
+    height: 2.75rem;
+    border: 1.5px dashed var(--color-border-strong);
+    border-radius: 6px 6px 14px 14px;
+  }
+  .sv-blank h2 {
+    margin: 0.75rem 0 0;
+    font-size: 1.375rem;
+    font-weight: 600;
+    color: var(--color-heading);
+  }
+  .sv-blank p {
+    margin: 0 0 1rem;
+    max-width: 38ch;
+    color: var(--color-muted);
+    line-height: 1.5;
+  }
   .sv-empty {
     color: var(--color-muted);
     margin: 1rem 0;
@@ -351,11 +415,23 @@
     font-size: 0.75rem;
     color: var(--color-muted);
   }
+  /* The shelf: the person's shelves as pots standing on a plank, each plant as big as what it
+     holds; tap one to see only it. A dashed pot at the end starts a new shelf. */
+  .sv-shelf {
+    position: relative;
+    margin: 0.25rem 0 1.25rem;
+    padding: 1rem 0.75rem 0;
+    border: 1px solid var(--color-base-300);
+    border-radius: 24px;
+    background: linear-gradient(to bottom, var(--color-base-100) 55%, var(--color-leaf-tab));
+    overflow: hidden;
+  }
   .sv-pots {
     list-style: none;
-    margin: 1rem -0.25rem 0;
-    padding: 0;
+    margin: 0;
+    padding: 0 0.25rem;
     display: flex;
+    align-items: flex-end;
     gap: 0.25rem;
     overflow-x: auto;
     scrollbar-width: none;
@@ -363,22 +439,43 @@
   .sv-pots button {
     display: grid;
     justify-items: center;
-    gap: 0.125rem;
-    width: 5.25rem;
-    padding: 0.5rem 0.25rem;
+    gap: 0.0625rem;
+    width: 5.5rem;
+    padding: 0.5rem 0.25rem 0.375rem;
     border: 1.5px solid transparent;
-    border-radius: 16px;
+    border-radius: 18px;
     background: none;
     color: var(--color-heading);
     font: inherit;
     cursor: pointer;
   }
   .sv-pots button:hover {
-    background: var(--color-base-200);
+    background: color-mix(in oklab, var(--color-base-100) 70%, transparent);
   }
   .sv-pots button[aria-pressed='true'] {
     border-color: var(--color-leaf-line);
-    background: var(--color-leaf-tab);
+    background: var(--color-base-100);
+  }
+  .sv-new-pot {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.25rem;
+    margin: 1.75rem 0 0.25rem;
+    border: 1.5px dashed var(--color-border-strong);
+    border-radius: 6px 6px 14px 14px;
+    color: var(--color-muted);
+  }
+  .sv-new:hover .sv-new-pot {
+    border-color: var(--color-leaf-line);
+    color: var(--color-leaf-line);
+  }
+  .sv-plank {
+    display: block;
+    height: 0.75rem;
+    margin: 0 -0.75rem;
+    background: light-dark(#e3d5bc, #4a4234);
+    box-shadow: inset 0 3px 0 light-dark(#efe5d3, #5a5141);
   }
   .sv-pots button:focus-visible,
   .sv-seg button:focus-visible,
