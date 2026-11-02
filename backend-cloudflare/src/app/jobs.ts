@@ -14,5 +14,9 @@
 //   };
 
 import type { Jobs } from '../jobs';
+import { REMINDER_JOB, runReminder } from './reminders';
 
-export const appJobs: Jobs = {};
+export const appJobs: Jobs = {
+  // One push a day at the person's chosen time, when topics are due (reminders.ts).
+  [REMINDER_JOB]: (env, payload) => runReminder(env, payload),
+};

@@ -14,6 +14,7 @@
 // the app), with a message they can read; the app itself validates before writing.
 
 import { refusal, type SyncRefusal, type SyncRules } from '../sync/rules';
+import { copyForReminders } from './reminders';
 
 export const SETTINGS_ID = 'settings-0000000000';
 
@@ -95,6 +96,8 @@ const settingsChecks: Record<string, (v: unknown) => string | null> = {
 // reads them.
 export const syncRules: SyncRules = {
   onlyListed: false,
+  // Due days and the reminder time, copied to D1 for the daily reminder (reminders.ts).
+  afterApply: (env, space, applied) => copyForReminders(env, space, applied),
   tables: {
     topics: {
       check: (c, current) =>

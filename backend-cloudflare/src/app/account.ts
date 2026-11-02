@@ -27,8 +27,16 @@ export interface AppAccount {
 }
 
 export const appAccount: AppAccount = {
-  exportUser: async () => ({}),
-  deleteUserStatements: () => [],
+  // Topics, check-ins and settings live in the person's sync space (deleted and exported by the
+  // core). These are only Remember's copies for the daily reminder (reminders.ts).
+  exportUser: async (ctx, user) => ({
+    reminder: await ctx.env.DB.prepare('SELECT at, tz FROM remember_reminders WHERE user_id = ?').bind(user.id).first(),
+    dueDays: (await ctx.env.DB.prepare('SELECT topic_id, due, active FROM remember_due WHERE user_id = ?').bind(user.id).all()).results,
+  }),
+  deleteUserStatements: (db, userId) => [
+    db.prepare('DELETE FROM remember_due WHERE user_id = ?').bind(userId),
+    db.prepare('DELETE FROM remember_reminders WHERE user_id = ?').bind(userId),
+  ],
   deleteTeamStatements: () => [],
   afterDeleteUser: async () => {},
   afterDeleteTeam: async () => {},
