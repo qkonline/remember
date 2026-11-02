@@ -1,29 +1,36 @@
 <!--
-  Log a topic in under ten seconds: what you studied, how long you need it, Save. Notes, a link
-  and the study date wait behind "More". The horizon starts at the one used last on this device.
+  Log a topic in under ten seconds: what you studied, its shelf, how long you need it, Plant it.
+  The check-ins it will get show as sprouts while choosing. Notes, a link and the study date wait
+  behind "More". The horizon and shelf start at the ones used last on this device (or the shelf
+  the sheet was opened from).
 -->
 <script lang="ts">
+  import { untrack } from 'svelte';
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
   import Textarea from '#lib/components/ui/Textarea.svelte';
-  import { t } from '#lib/i18n/index.svelte.ts';
-  import { addTopic, LAST_HORIZON_KEY, memory } from '#lib/app/store.svelte.ts';
+  import { t, tn } from '#lib/i18n/index.svelte.ts';
+  import { addShelf, addTopic, LAST_HORIZON_KEY, LAST_SHELF_KEY, memory } from '#lib/app/store.svelte.ts';
   import {
     addDays,
     DEFAULT_HORIZON,
+    endOn,
     horizonProblem,
     isDay,
+    preview,
     type Day,
     type Horizon,
   } from '#lib/app/schedule/index.ts';
+  import { formatDay, whenNext } from '#lib/app/dates.ts';
+  import { say, ui } from '#lib/app/ui.svelte.ts';
   import Sheet from './Sheet.svelte';
   import Key from './Key.svelte';
+  import Glyph from './Glyph.svelte';
   import HorizonPicker from './HorizonPicker.svelte';
+  import ShelfPicker from './ShelfPicker.svelte';
+  import PlanSprouts from './PlanSprouts.svelte';
 
-  let {
-    open = $bindable(false),
-    onadded,
-  }: { open?: boolean; onadded?: (r: { title: string; plan: Day[]; endOn: Day | null }) => void } = $props();
+  let { open = $bindable(false) }: { open?: boolean } = $props();
 
   function lastHorizon(): Horizon {
     try {
@@ -34,10 +41,28 @@
       return DEFAULT_HORIZON;
     }
   }
+  function lastShelf(): string | null {
+    try {
+      const id = localStorage.getItem(LAST_SHELF_KEY);
+      return id && memory.shelves.some((s) => s.id === id) ? id : null;
+    } catch {
+      return null;
+    }
+  }
+  function remember(key: string, value: string | null) {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch {
+      // Private mode: the defaults stay.
+    }
+  }
 
   let title = $state('');
   let notes = $state('');
   let link = $state('');
+  let shelf = $state<string | null>(null);
+  let newShelf = $state('');
   let studied = $state<'today' | 'yesterday' | 'other'>('today');
   let studiedOther = $state('');
   let horizon = $state<Horizon>(DEFAULT_HORIZON);
@@ -51,6 +76,7 @@
     studied === 'today' ? today : studied === 'yesterday' ? addDays(today, -1) : studiedOther,
   );
   const titleProblem = $derived(title.trim() ? null : 'Name what you studied.');
+  const shelfProblem = $derived(shelf === 'new' && !newShelf.trim() ? 'Name the new shelf.' : null);
   const dateProblem = $derived(
     studied === 'other' && (!isDay(studiedOther) || studiedOther > today) ? 'Pick a day up to today.' : null,
   );
@@ -58,64 +84,100 @@
   const linkProblem = $derived(
     link.trim() && !/^https?:\/\/\S+$/i.test(link.trim()) ? 'Start the link with https://.' : null,
   );
-  const dirty = $derived(!!(title || notes || link));
+  const dirty = $derived(!!(title || notes || link || newShelf));
 
-  // A fresh form each time the sheet opens.
+  const end = $derived(isDay(studiedOn) && !hzProblem ? endOn(studiedOn, horizon) : null);
+  const plan = $derived(
+    isDay(studiedOn) && !hzProblem ? preview({ studiedOn, endOn: end }, memory.settings.retention) : [],
+  );
+  const planLabel = $derived(
+    end
+      ? tn(plan.length, 'It comes back once, before {end}', 'It comes back {count} times, until {end}', {
+          end: formatDay(end, today),
+        })
+      : t('It comes back less and less often, for good'),
+  );
+
+  // A fresh form each time the sheet opens, and only then: untracked, so a shelf made while
+  // saving (which reloads the shelves) doesn't clear the form under the save.
   $effect(() => {
-    if (!open) return;
+    if (open) untrack(reset);
+  });
+  function reset() {
     title = '';
     notes = '';
     link = '';
+    newShelf = '';
+    shelf = ui.addOnShelf ?? lastShelf();
     studied = 'today';
     studiedOther = addDays(memory.today, -2);
     horizon = lastHorizon();
     more = false;
     tried = false;
     queueMicrotask(() => titleInput?.focus());
-  });
+  }
 
   async function save(e: SubmitEvent) {
     e.preventDefault();
     tried = true;
-    if (titleProblem || dateProblem || hzProblem || linkProblem || saving) return;
+    if (titleProblem || shelfProblem || dateProblem || hzProblem || linkProblem || saving) return;
     saving = true;
     try {
-      const r = await addTopic({ title, notes, link, studiedOn, horizon });
-      try {
-        localStorage.setItem(LAST_HORIZON_KEY, JSON.stringify(horizon));
-      } catch {
-        // Private mode: the default stays.
-      }
+      const shelfId = shelf === 'new' ? await addShelf(newShelf) : shelf;
+      const r = await addTopic({ title, shelf: shelfId, notes, link, studiedOn, horizon });
+      remember(LAST_HORIZON_KEY, JSON.stringify(horizon));
+      remember(LAST_SHELF_KEY, shelfId);
       open = false;
-      onadded?.({ title: title.trim(), plan: r.plan, endOn: r.endOn });
+      const first = r.plan[0];
+      const name = title.trim();
+      say(
+        !first
+          ? t('Planted {title}.', { title: name })
+          : r.endOn
+            ? tn(
+                r.plan.length,
+                'Planted. First check-in {when}, the only one before {end}.',
+                'Planted. First check-in {when}, about {count} until {end}.',
+                { when: whenNext(first, today), end: formatDay(r.endOn, today) },
+              )
+            : t('Planted. First check-in {when}, then less and less often.', {
+                when: whenNext(first, today),
+              }),
+      );
     } finally {
       saving = false;
     }
   }
 </script>
 
-<Sheet title={t('Add what you studied')} bind:open dismissible={!dirty}>
+<Sheet title={t('Plant something new')} bind:open dismissible={!dirty}>
   <form id="add-topic" class="add" onsubmit={save} novalidate>
-    <Field
-      label={t('What did you study?')}
-      invalid={tried && !!titleProblem}
-      hint={tried && titleProblem ? t(titleProblem) : undefined}
-    >
-      <Input
-        bind:ref={titleInput}
-        bind:value={title}
-        maxlength={200}
-        autocomplete="off"
-        enterkeyhint="done"
-        placeholder={t('Krebs cycle, chapter 4, React effects…')}
-      />
-    </Field>
+    <div class="add-title" class:add-bad={tried && !!titleProblem}>
+      <Field
+        label={t('What did you study?')}
+        invalid={tried && !!titleProblem}
+        hint={tried && titleProblem ? t(titleProblem) : undefined}
+      >
+        <Input
+          bind:ref={titleInput}
+          bind:value={title}
+          maxlength={200}
+          autocomplete="off"
+          enterkeyhint="done"
+          placeholder={t('Krebs cycle, chapter 4, React effects…')}
+        />
+      </Field>
+    </div>
+
+    <ShelfPicker bind:shelf bind:newName={newShelf} problem={tried ? shelfProblem : null} />
 
     <HorizonPicker bind:horizon {today} problem={tried ? hzProblem : null} />
 
+    {#if plan.length}<PlanSprouts {plan} label={planLabel} />{/if}
+
     {#if !more}
       <button type="button" class="add-more" onclick={() => (more = true)}
-        >{t('Add notes, a link or the study date')}</button
+        ><Glyph name="plus" size={16} />{t('Notes, a link or the day you studied')}</button
       >
     {:else}
       <div class="add-extra">
@@ -154,7 +216,9 @@
   </form>
 
   {#snippet foot()}
-    <Key tone="primary" wide type="submit" form="add-topic" disabled={saving}>{t('Save')}</Key>
+    <Key tone="leaf" big wide type="submit" form="add-topic" disabled={saving}
+      ><Glyph name="plus" size={18} />{t('Plant it')}</Key
+    >
   {/snippet}
 </Sheet>
 
@@ -164,11 +228,21 @@
     flex-direction: column;
     gap: 1.25rem;
   }
+  .add-title :global(input) {
+    min-height: 3.5rem;
+    font-size: 1.375rem;
+    font-weight: 500;
+    border-radius: 16px;
+  }
   .add-more {
     align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
     background: none;
     border: 0;
-    padding: 0.5rem 0;
+    padding: 0;
     color: var(--color-link);
     font: inherit;
     font-weight: 500;
@@ -191,7 +265,7 @@
   }
   .add-when legend {
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
     margin-bottom: 0.5rem;
   }
   .add-when-row {
@@ -207,7 +281,6 @@
     padding: 0 0.875rem;
     border: 1px solid var(--color-base-300);
     border-radius: 999px;
-    font-weight: 500;
     cursor: pointer;
   }
   .add-when-opt input {
@@ -222,8 +295,8 @@
     outline-offset: 2px;
   }
   .add-on {
-    border-color: var(--color-primary);
-    color: var(--color-primary);
-    background: color-mix(in oklab, var(--color-primary) 10%, var(--color-base-100));
+    border: 1.5px solid var(--color-leaf-line);
+    background: var(--color-leaf-tint);
+    color: var(--color-leaf-deep);
   }
 </style>

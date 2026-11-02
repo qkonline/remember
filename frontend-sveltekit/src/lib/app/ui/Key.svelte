@@ -1,28 +1,46 @@
 <!--
-  The family's raised key (Boardo, Elastic): a button that stands 3 px proud of the page and
-  presses down when tapped. `tone`: plain, go (green, for "Got it" and finishing), primary.
+  Remember's raised key: a button that stands proud of the page and presses down when tapped.
+  `tone`: leaf (the light green main key, with leaves in its corner), plain (white), forgot
+  (rose), hazy (yellow). `primary` and `go` are leaf.
 
-    <Key tone="go" onclick={…}>Got it</Key>
+    <Key tone="leaf" onclick={…}>Start refreshing</Key>
 -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { HTMLButtonAttributes } from 'svelte/elements';
+  import Leaves from './Leaves.svelte';
 
   let {
     tone = 'plain',
     wide = false,
+    big = false,
+    leaves = true,
     children,
     ...rest
   }: HTMLButtonAttributes & {
-    tone?: 'plain' | 'go' | 'primary';
+    tone?: 'plain' | 'leaf' | 'go' | 'primary' | 'forgot' | 'hazy';
     wide?: boolean;
+    /** The taller key of a page's main action (56 px). */
+    big?: boolean;
+    /** The leaf texture on a leaf key (off for small keys). */
+    leaves?: boolean;
     children: Snippet;
   } = $props();
 
-  const toneClass = { plain: 'rk-plain', go: 'rk-go', primary: 'rk-primary' } as const;
+  const toneClass = {
+    plain: 'rk-plain',
+    leaf: 'rk-leaf',
+    go: 'rk-leaf',
+    primary: 'rk-leaf',
+    forgot: 'rk-forgot',
+    hazy: 'rk-hazy',
+  } as const;
+  const isLeaf = $derived(tone === 'leaf' || tone === 'go' || tone === 'primary');
 </script>
 
-<button type="button" class="rk {toneClass[tone]}" class:rk-wide={wide} {...rest}>{@render children()}</button
+<button type="button" class="rk {toneClass[tone]}" class:rk-wide={wide} class:rk-big={big} {...rest}
+  >{#if isLeaf && leaves}<Leaves size={big ? 96 : 76} />{/if}<span class="rk-in">{@render children()}</span
+  ></button
 >
 
 <style>
@@ -30,21 +48,22 @@
     --rk-face: var(--color-base-100);
     --rk-ink: var(--color-base-content);
     --rk-line: var(--color-base-300);
-    --rk-edge: color-mix(in oklab, var(--color-base-300) 62%, black);
+    --rk-edge: var(--color-base-300);
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    min-height: 2.75rem;
-    padding: 0 1.125rem;
+    min-height: 3rem;
+    padding: 0 1.25rem;
     border: 1px solid var(--rk-line);
-    border-radius: var(--radius-field);
+    border-radius: 14px;
     background: var(--rk-face);
     color: var(--rk-ink);
     font: inherit;
-    font-weight: 600;
-    font-size: 0.9375rem;
-    line-height: 1;
+    font-weight: 500;
+    font-size: 1rem;
+    line-height: 1.1;
     box-shadow: 0 3px 0 var(--rk-edge);
     transform: translateY(0);
     transition:
@@ -54,20 +73,41 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
+  .rk-in {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
   .rk-wide {
     width: 100%;
   }
-  .rk-go {
-    --rk-face: var(--color-success);
-    --rk-ink: var(--color-success-content);
-    --rk-line: var(--color-success);
-    --rk-edge: color-mix(in oklab, var(--color-success) 60%, black);
+  .rk-big {
+    min-height: 3.5rem;
+    border-radius: 16px;
+    font-size: 1.0625rem;
   }
-  .rk-primary {
-    --rk-face: var(--color-primary);
-    --rk-ink: var(--color-primary-content);
-    --rk-line: var(--color-primary);
-    --rk-edge: color-mix(in oklab, var(--color-primary) 60%, black);
+  .rk-leaf {
+    --rk-face: var(--color-leaf);
+    --rk-ink: var(--color-leaf-ink);
+    --rk-line: var(--color-leaf);
+    --rk-edge: var(--color-leaf-edge);
+    box-shadow: 0 4px 0 var(--rk-edge);
+  }
+  .rk-forgot {
+    --rk-face: light-dark(#ffe4e6, #3a1a20);
+    --rk-ink: light-dark(#9f1239, #fda4af);
+    --rk-line: var(--rk-face);
+    --rk-edge: light-dark(#fda4af, #6b2633);
+    box-shadow: 0 4px 0 var(--rk-edge);
+  }
+  .rk-hazy {
+    --rk-face: light-dark(#fef9c3, #332c10);
+    --rk-ink: light-dark(#854d0e, #fde68a);
+    --rk-line: var(--rk-face);
+    --rk-edge: light-dark(#fde047, #5c4f17);
+    box-shadow: 0 4px 0 var(--rk-edge);
   }
   .rk:active:not(:disabled) {
     transform: translateY(3px);

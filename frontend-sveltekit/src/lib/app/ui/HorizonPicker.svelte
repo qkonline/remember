@@ -57,7 +57,7 @@
 </script>
 
 <fieldset class="hz">
-  <legend class="hz-legend">{t('How long do you need it?')}</legend>
+  <legend class="hz-legend">{t('Keep it for')}</legend>
   <div class="hz-chips">
     {#each choices as c (c.kind)}
       <label class="hz-chip" class:hz-on={horizon.kind === c.kind}>
@@ -102,7 +102,7 @@
     margin: 0;
   }
   .hz-legend {
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.9375rem;
     margin-bottom: 0.625rem;
     color: var(--color-heading);
@@ -121,7 +121,6 @@
     border: 1px solid var(--color-base-300);
     border-radius: 999px;
     background: var(--color-base-100);
-    font-weight: 500;
     font-size: 0.9375rem;
     cursor: pointer;
     user-select: none;
@@ -141,10 +140,9 @@
     outline-offset: 2px;
   }
   .hz-on {
-    border-color: var(--color-primary);
-    background: color-mix(in oklab, var(--color-primary) 10%, var(--color-base-100));
-    color: var(--color-primary);
-    font-weight: 600;
+    border: 1.5px solid var(--color-leaf-line);
+    background: var(--color-leaf-tint);
+    color: var(--color-leaf-deep);
   }
   .hz-more {
     margin-top: 1rem;

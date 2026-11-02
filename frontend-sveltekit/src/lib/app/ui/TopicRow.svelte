@@ -1,109 +1,120 @@
 <!--
-  One topic in a list: its title, how long is left (or when it comes back), and its horizon
-  track. The whole row is one button or link.
+  One topic in a list: its shelf's mark, its title, its shelf and how far it has grown, and when
+  it comes back ("Today" stands out). The whole row is one link (or button).
 -->
 <script lang="ts">
   import { t } from '#lib/i18n/index.svelte.ts';
-  import { checkinsOf, memory, type Topic } from '#lib/app/store.svelte.ts';
-  import { timeLeft, whenNext } from '#lib/app/dates.ts';
-  import Track from './Track.svelte';
+  import { growthOf, memory, shelfOf, type Topic } from '#lib/app/store.svelte.ts';
+  import { daysBetween } from '#lib/app/schedule/index.ts';
+  import { formatDay, whenNext } from '#lib/app/dates.ts';
+  import ShelfMark from './ShelfMark.svelte';
+  import Sprouts from './Sprouts.svelte';
 
   let {
     topic,
     href,
     onclick,
-    showNext = false,
-  }: { topic: Topic; href?: string; onclick?: () => void; showNext?: boolean } = $props();
+    selected = false,
+  }: { topic: Topic; href?: string; onclick?: (e: MouseEvent) => void; selected?: boolean } = $props();
 
   const today = $derived(memory.today);
-  const done = $derived(checkinsOf(topic.id).map((c) => c.day));
-  const meta = $derived.by(() => {
-    if (topic.state === 'done') return t('Kept to the finish line');
-    const parts: string[] = [];
-    if (showNext)
-      parts.push(topic.due ? t('Next {when}', { when: whenNext(topic.due, today) }) : t('No more check-ins'));
-    parts.push(topic.endOn ? timeLeft(topic.endOn, today) : t('For good'));
-    return parts.join(', ');
-  });
+  const shelf = $derived(shelfOf(topic));
+  const grown = $derived(growthOf(topic));
+  const dueNow = $derived(topic.state === 'active' && topic.due !== null && topic.due <= today);
+  const when = $derived(
+    topic.state === 'done'
+      ? topic.doneOn
+        ? t('Learned {date}', { date: formatDay(topic.doneOn, today) })
+        : t('Learned')
+      : topic.due === null
+        ? t('No more check-ins')
+        : dueNow
+          ? t('Today')
+          : (() => {
+              const s = whenNext(topic.due, today);
+              return daysBetween(today, topic.due) < 60 ? s.charAt(0).toLocaleUpperCase() + s.slice(1) : s;
+            })(),
+  );
 </script>
 
 {#snippet body()}
-  <span class="tr-title">{topic.title}</span>
-  <span class="tr-meta">{meta}</span>
-  <span class="tr-track">
-    <Track
-      start={topic.studiedOn}
-      end={topic.endOn}
-      {done}
-      next={topic.due}
-      {today}
-      finished={topic.state === 'done'}
-    />
+  <ShelfMark {shelf} size={38} />
+  <span class="tr-text">
+    <span class="tr-title">{topic.title}</span>
+    <span class="tr-meta"
+      >{shelf?.name ?? t('No shelf')}<Sprouts done={grown.done} total={grown.total} size={13} /></span
+    >
   </span>
+  <span class="tr-when" class:tr-now={dueNow}>{when}</span>
 {/snippet}
 
 {#if href}
-  <a class="tr" {href}>{@render body()}</a>
+  <a class="tr" class:tr-sel={selected} {href} {onclick} aria-current={selected ? 'true' : undefined}
+    >{@render body()}</a
+  >
 {:else}
-  <button type="button" class="tr" {onclick}>{@render body()}</button>
+  <button type="button" class="tr" class:tr-sel={selected} {onclick}>{@render body()}</button>
 {/if}
 
 <style>
   .tr {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-areas:
-      'title meta'
-      'track track';
-    align-items: baseline;
-    column-gap: 1rem;
-    row-gap: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
     width: 100%;
-    padding: 1rem 0.25rem;
-    background: none;
+    min-height: 4rem;
+    padding: 0.625rem 1rem;
+    box-sizing: border-box;
     border: 0;
     border-bottom: 1px solid var(--color-base-300);
+    background: none;
     color: inherit;
     font: inherit;
     text-align: start;
     text-decoration: none;
     cursor: pointer;
   }
-  .tr:hover .tr-title {
-    color: var(--color-primary);
+  .tr:hover {
+    background: var(--color-base-200);
   }
   .tr:focus-visible {
     outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-    border-radius: 6px;
+    outline-offset: -2px;
+  }
+  .tr-sel,
+  .tr-sel:hover {
+    background: var(--color-leaf-tab);
+    box-shadow: inset 3px 0 0 var(--color-leaf-line);
+  }
+  .tr-text {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 0.1875rem;
   }
   .tr-title {
-    grid-area: title;
-    font-weight: 600;
-    font-size: 1.0625rem;
+    font-weight: 500;
+    font-size: 1rem;
     color: var(--color-heading);
     overflow-wrap: anywhere;
   }
   .tr-meta {
-    grid-area: meta;
-    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
     color: var(--color-muted);
-    white-space: nowrap;
   }
-  .tr-track {
-    grid-area: track;
+  .tr-when {
+    flex: none;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
   }
-  @media (max-width: 26rem) {
-    .tr {
-      grid-template-columns: 1fr;
-      grid-template-areas:
-        'title'
-        'meta'
-        'track';
-      row-gap: 0.375rem;
-    }
-    .tr-track {
-      margin-top: 0.375rem;
-    }
+  .tr-now {
+    padding: 0.1875rem 0.5625rem;
+    border-radius: 999px;
+    background: var(--color-leaf-tint);
+    color: var(--color-leaf-deep);
+    font-weight: 500;
   }
 </style>

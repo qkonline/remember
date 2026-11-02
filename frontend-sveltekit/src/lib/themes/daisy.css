@@ -1,18 +1,19 @@
 /*
-  Remember's look (in the template's base theme file, as its README says to restyle the look):
-  the family of Boardo and Elastic. Calm grey paper, white cards, indigo for the main action,
-  green for "Got it", rose for danger; Instrument Sans for everything and Space Grotesk for the
-  one big number on Today. No orange anywhere. 44 px controls (the family's touch size), 8 px
-  corners on controls and 10 px on cards, flat.
+  Remember's look, "Greenhouse Spring" (in the template's base theme file, as its README says to
+  restyle the look): plain white pages, a light grass green for the main keys (with dark green
+  text on them), deeper greens for links, lines and text, and a colour per shelf. Instrument
+  Sans for everything, numbers too, at 400, 500 and 600. No blue and no orange anywhere.
+  44 px controls, soft corners, flat apart from the raised keys.
   A theme is DaisyUI's theme variables (https://daisyui.com/docs/themes/) plus colours of our
-  own (heading, muted, link, strong border) and the shadow of things that float. Colours are
-  `light-dark(light, dark)`: which half applies follows `color-scheme`, which the mode (Device,
-  Light, Dark) sets in src/app.css, so a theme writes both modes in one place. Daisy is the base
-  (`:root`): another theme overrides only what it changes, under `[data-theme='<id>']`.
+  own (heading, muted, link, strong border, the leaf greens) and the shadow of things that float.
+  Colours are `light-dark(light, dark)`: which half applies follows `color-scheme`, which the
+  mode (Device, Light, Dark) sets in src/app.css, so a theme writes both modes in one place.
+  Daisy is the base (`:root`): another theme overrides only what it changes, under
+  `[data-theme='<id>']`.
 */
 
-/* Instrument Sans and Space Grotesk, served from this site (the CSP allows fonts from here only),
-   Latin. Licences: static/fonts/InstrumentSans-OFL.txt and SpaceGrotesk-OFL.txt. */
+/* Instrument Sans, served from this site (the CSP allows fonts from here only), Latin.
+   Licence: static/fonts/InstrumentSans-OFL.txt. */
 @font-face {
   font-family: 'Instrument Sans';
   font-style: normal;
@@ -34,46 +35,41 @@
   font-display: swap;
   src: url('/fonts/instrument-sans-latin-600-normal.woff2') format('woff2');
 }
-@font-face {
-  font-family: 'Space Grotesk';
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-  src: url('/fonts/space-grotesk-latin-600-normal.woff2') format('woff2');
-}
 
 @layer base {
   :root,
   [data-theme='daisy'] {
-    /* Surfaces: cards and fields (100), the page (200), lines and tracks (300), text on them */
-    --color-base-100: light-dark(#ffffff, #181b21);
-    --color-base-200: light-dark(#f4f5f7, #0f1115);
-    --color-base-300: light-dark(#e3e5ea, #2a2e36);
-    --color-base-content: light-dark(#16181d, #eceef2);
-    /* Roles, each with the colour of text on it. Indigo is the family's "accent as text"
-       (#4f46e5), not #6366f1, so white on it passes AA (6.3:1). */
-    --color-primary: light-dark(#4f46e5, #a5b4fc);
-    --color-primary-content: light-dark(#ffffff, #0f1115);
-    --color-secondary: light-dark(#5b6170, #9aa1ae);
-    --color-secondary-content: light-dark(#ffffff, #0f1115);
-    --color-accent: light-dark(#7c3aed, #c4b5fd);
-    --color-accent-content: light-dark(#ffffff, #0f1115);
-    --color-neutral: light-dark(#16181d, #eceef2);
-    --color-neutral-content: light-dark(#ffffff, #0f1115);
-    --color-info: light-dark(#4f46e5, #a5b4fc);
-    --color-info-content: light-dark(#ffffff, #0f1115);
-    --color-success: light-dark(#15803d, #22c55e);
-    --color-success-content: light-dark(#ffffff, #0f1115);
-    --color-warning: light-dark(#854d0e, #facc15);
-    --color-warning-content: light-dark(#ffffff, #0f1115);
-    --color-error: light-dark(#e11d48, #fb7185);
-    --color-error-content: light-dark(#ffffff, #0f1115);
+    /* Surfaces: cards and fields (100), quiet fills (200), lines and tracks (300), text on them.
+       Pages are plain white: the app's frame paints base-100 behind them. */
+    --color-base-100: light-dark(#ffffff, #161c16);
+    --color-base-200: light-dark(#f6f8f5, #0e120e);
+    --color-base-300: light-dark(#e3e8e2, #2a342a);
+    --color-base-content: light-dark(#172119, #e8eee6);
+    /* Roles, each with the colour of text on it. Primary is the deep green that white text
+       passes AA on (5.3:1), for the core's buttons, focus rings and links; Remember's own keys
+       use the light leaf green below with dark text. */
+    --color-primary: light-dark(#2f7a22, #94d873);
+    --color-primary-content: light-dark(#ffffff, #10200b);
+    --color-secondary: light-dark(#4f5c53, #a3b0a5);
+    --color-secondary-content: light-dark(#ffffff, #0e120e);
+    --color-accent: light-dark(#94d873, #94d873);
+    --color-accent-content: light-dark(#173d0f, #10200b);
+    --color-neutral: light-dark(#172119, #e8eee6);
+    --color-neutral-content: light-dark(#ffffff, #0e120e);
+    --color-info: light-dark(#2f7a22, #94d873);
+    --color-info-content: light-dark(#ffffff, #10200b);
+    --color-success: light-dark(#2f7a22, #94d873);
+    --color-success-content: light-dark(#ffffff, #10200b);
+    --color-warning: light-dark(#854d0e, #fde047);
+    --color-warning-content: light-dark(#ffffff, #0e120e);
+    --color-error: light-dark(#be123c, #fb7185);
+    --color-error-content: light-dark(#ffffff, #0e120e);
     /* Shape: corners of checkboxes and toggles (selector), fields and buttons, cards and boxes;
        control sizes (×10 is the height: 0.275rem → 44 px, the family's touch size); border
        width; depth and noise off */
-    --radius-selector: 6px;
-    --radius-field: 8px;
-    --radius-box: 10px;
+    --radius-selector: 8px;
+    --radius-field: 12px;
+    --radius-box: 20px;
     --size-selector: 0.25rem;
     --size-field: 0.275rem;
     --border: 1px;
@@ -81,21 +77,31 @@
     --noise: 0;
     /* Ours, beside DaisyUI's: headings, quieter text, links, a stronger line, rating stars,
        what's behind a dialog, things that float */
-    --color-heading: light-dark(#16181d, #eceef2);
-    --color-muted: light-dark(#5b6170, #9aa1ae);
-    --color-link: light-dark(#4f46e5, #a5b4fc);
-    --color-border-strong: light-dark(#c9ccd4, #3a3f49);
+    --color-heading: light-dark(#172119, #eef3ec);
+    --color-muted: light-dark(#4f5c53, #a3b0a5);
+    --color-link: light-dark(#2f7a22, #a6e08a);
+    --color-border-strong: light-dark(#c5cfc6, #3a463a);
     --color-star: light-dark(#a16207, #facc15);
-    --color-scrim: light-dark(rgb(22 24 29 / 0.38), rgb(0 0 0 / 0.6));
+    --color-scrim: light-dark(rgb(23 33 25 / 0.32), rgb(0 0 0 / 0.6));
     --shadow-pop:
-      0 6px 16px light-dark(rgb(22 24 29 / 0.1), rgb(0 0 0 / 0.45)),
-      0 2px 4px light-dark(rgb(22 24 29 / 0.08), rgb(0 0 0 / 0.3));
-    /* The family's soft stripe, for a finish line only */
-    --color-stripe: linear-gradient(to right, #818cf8, #a78bfa, #c084fc, #f472b6, #f43f5e);
-    --color-stripe-end: #f43f5e;
-    /* The family's fonts (Tailwind's @theme sets --font-sans in an earlier layer; this wins). */
+      0 12px 28px light-dark(rgb(23 33 25 / 0.13), rgb(0 0 0 / 0.45)),
+      0 2px 4px light-dark(rgb(23 33 25 / 0.06), rgb(0 0 0 / 0.3));
+    /* The leaf greens of Remember's keys, lines and tints */
+    --color-leaf: light-dark(#94d873, #94d873);
+    --color-leaf-ink: light-dark(#173d0f, #10200b);
+    --color-leaf-edge: light-dark(#5aa143, #4f8a3a);
+    --color-leaf-line: light-dark(#3d8a2c, #8fd46c);
+    --color-leaf-deep: light-dark(#1f4a14, #c3eaab);
+    --color-leaf-tint: light-dark(#e6f6dc, #1d2e19);
+    --color-leaf-soft: light-dark(#c6eab0, #2c4a22);
+    --color-leaf-bright: light-dark(#8fd46c, #6fb552);
+    --color-leaf-tab: light-dark(#eef8e7, #1a2618);
+    /* A finish line: a soft green stripe */
+    --color-stripe: linear-gradient(to right, #c6eab0, #94d873, #5aa143);
+    --color-stripe-end: #5aa143;
+    /* The fonts (Tailwind's @theme sets --font-sans in an earlier layer; this wins). */
     --font-sans:
       'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --font-number: 'Space Grotesk', 'Instrument Sans', system-ui, sans-serif;
+    --font-number: 'Instrument Sans', system-ui, sans-serif;
   }
 }

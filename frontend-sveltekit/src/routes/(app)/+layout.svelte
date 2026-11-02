@@ -1,7 +1,8 @@
 <!--
   Everything behind sign-in. Without a working session, off to sign in. With
   `requireVerifiedEmail` on and the email unconfirmed, only the gate shows (PRD R1.7). The
-  header shows Teams, Admin and the bell only when /features has them on. With sync on, it
+  header shows Teams, Admin and the bell only when /features has them on. An app with its own
+  frame (`appFrame` in src/lib/app/frame.ts) draws that in place of the header and footer. With sync on, it
   starts keeping the device's data in step and shows what's still waiting.
 
   Offline first: when the device kept what the app needs from the last start, the app opens from
@@ -14,6 +15,7 @@
   import { page } from '$app/state';
   import { messageOf } from '#lib/api/index.ts';
   import { appNav } from '#lib/app/shell.ts';
+  import { appFrame } from '#lib/app/frame.ts';
   import { appName } from '#lib/config.ts';
   import { onMount } from 'svelte';
   import { startSync, useAccount } from '#lib/db/index.svelte.ts';
@@ -95,11 +97,15 @@
   const teamsOn = $derived(!!auth.features?.teams);
   const adminOn = $derived(!!auth.features?.admin && !!user?.isAdmin && !auth.support);
   let feedback = $state<ReturnType<typeof FeedbackDialog>>();
+  // The app's own frame (Remember: a sidebar and a tab bar), when it has one.
+  const AppFrame = appFrame;
 </script>
 
 {#if phase === 'ready' && user}
   {#if gated}
     <EmailGate />
+  {:else if AppFrame}
+    <AppFrame {user}>{@render children()}</AppFrame>
   {:else}
     <div class="app">
       <header class="bar">

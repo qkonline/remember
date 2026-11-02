@@ -47,7 +47,8 @@
   .ub {
     position: fixed;
     inset-inline: 1rem;
-    bottom: calc(1rem + env(safe-area-inset-bottom));
+    /* Above the frame's tab bar on a phone (--ub-lift), at the bottom elsewhere. */
+    bottom: calc(1rem + var(--ub-lift, 0px) + env(safe-area-inset-bottom));
     z-index: var(--z-pop);
     margin-inline: auto;
     max-width: 28rem;
@@ -60,14 +61,13 @@
     background: var(--color-neutral);
     color: var(--color-neutral-content);
     box-shadow: var(--shadow-pop);
-    font-weight: 500;
   }
   .ub-undo {
     background: none;
     border: 0;
     color: inherit;
     font: inherit;
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: underline;
     text-underline-offset: 3px;
     min-height: 2.75rem;

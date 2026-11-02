@@ -1,6 +1,6 @@
 // Days for people: "Tue 3 Nov", "3 Nov 2027", "tomorrow", "in 9 days", "3 weeks".
 
-import { daysBetween, toDate, type Day } from '#lib/app/schedule/index.ts';
+import { daysBetween, toDate, type Day, type Horizon } from '#lib/app/schedule/index.ts';
 import { i18n, t, tn } from '#lib/i18n/index.svelte.ts';
 
 /** The browser's own locale when it's in the app's language (keeps en-GB "3 Nov"), else the app's. */
@@ -52,4 +52,26 @@ export function lengthOf(days: number): string {
     return tn(Math.round(days / 30), '1 month', '{count} months');
   if (days % 7 === 0) return tn(days / 7, '1 week', '{count} weeks');
   return tn(days, '1 day', '{count} days');
+}
+
+/** How long a topic is kept, as picked: "3 months", "Forever", "45 days", or null for a date. */
+export function horizonLabel(h: Horizon): string | null {
+  switch (h.kind) {
+    case 'week':
+      return t('1 week');
+    case 'month':
+      return t('1 month');
+    case 'quarter':
+      return t('3 months');
+    case 'half':
+      return t('6 months');
+    case 'year':
+      return t('1 year');
+    case 'forever':
+      return t('Forever');
+    case 'custom':
+      return h.days ? lengthOf(h.days) : null;
+    default:
+      return null;
+  }
 }

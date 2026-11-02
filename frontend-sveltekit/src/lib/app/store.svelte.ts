@@ -1,5 +1,5 @@
 // Remember's records on the device (IndexedDB, synced by the core's #lib/db): topics, their
-// check-ins and the person's settings, kept in one reactive place for the pages. Every write
+// shelves, their check-ins and the person's settings, kept in one reactive place for the pages. Every write
 // recomputes the topic's schedule from its check-ins, so `due` and `card` are always what the
 // record of check-ins says.
 
@@ -24,10 +24,24 @@ export const SETTINGS_ID = 'settings-0000000000';
 
 /** The horizon picked last on this device (a device setting: `appDeviceKeys`). */
 export const LAST_HORIZON_KEY = 'remember:last-horizon';
+/** The shelf picked last on this device (a device setting: `appDeviceKeys`). */
+export const LAST_SHELF_KEY = 'remember:last-shelf';
+
+/** Shelf colours (the backend checks the same list). No blue in Remember's palette. */
+export const SHELF_COLORS = ['green', 'rose', 'yellow', 'fuchsia', 'lime', 'sand'] as const;
+export type ShelfColor = (typeof SHELF_COLORS)[number];
+
+export interface Shelf {
+  id: string;
+  name: string;
+  color: ShelfColor;
+}
 
 export interface Topic {
   id: string;
   title: string;
+  /** The shelf it sits on, or null. */
+  shelf: string | null;
   notes: string;
   link: string;
   studiedOn: Day;
@@ -64,6 +78,7 @@ const defaults = (): Settings => ({
 export const memory = $state({
   loaded: false,
   topics: [] as Topic[],
+  shelves: [] as Shelf[],
   checkins: [] as CheckInRecord[],
   settings: defaults(),
   /** The person's day, refreshed when the app comes back to the front. */
@@ -80,6 +95,7 @@ function toTopic(id: string, f: Record<string, unknown>): Topic {
   return {
     id,
     title: String(f.title ?? ''),
+    shelf: typeof f.shelf === 'string' && f.shelf ? f.shelf : null,
     notes: String(f.notes ?? ''),
     link: String(f.link ?? ''),
     studiedOn: String(f.studiedOn ?? memory.today),
@@ -98,12 +114,22 @@ let loading: Promise<void> | null = null;
 export function load(): Promise<void> {
   loading ??= (async () => {
     try {
-      const [topics, checkins, settings] = await Promise.all([
+      const [topics, shelves, checkins, settings] = await Promise.all([
         data.list(ME, 'topics'),
+        data.list(ME, 'shelves'),
         data.list(ME, 'checkins'),
         data.get(ME, 'settings', SETTINGS_ID),
       ]);
       memory.topics = topics.map((r) => toTopic(r.id, r.fields));
+      memory.shelves = shelves
+        .map((r) => ({
+          id: r.id,
+          name: String(r.fields.name ?? ''),
+          color: (SHELF_COLORS as readonly string[]).includes(String(r.fields.color))
+            ? (r.fields.color as ShelfColor)
+            : 'sand',
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
       memory.checkins = checkins.map((r) => ({
         id: r.id,
         topic: String(r.fields.topic),
@@ -155,6 +181,7 @@ function scheduled(t: Pick<Topic, 'studiedOn' | 'endOn'>, checkins: readonly Che
 
 export interface NewTopic {
   title: string;
+  shelf: string | null;
   notes: string;
   link: string;
   studiedOn: Day;
@@ -163,10 +190,12 @@ export interface NewTopic {
 
 /** Adds a topic; its id and the check-ins to expect if all goes well. */
 export async function addTopic(input: NewTopic): Promise<{ id: string; plan: Day[]; endOn: Day | null }> {
+  if (!input.title.trim()) throw new Error('A topic needs a title.');
   const id = data.newId();
   const end = endOfHorizon(input.studiedOn, input.horizon);
   const fields = {
     title: input.title.trim(),
+    shelf: input.shelf,
     notes: input.notes,
     link: input.link.trim(),
     studiedOn: input.studiedOn,
@@ -215,7 +244,7 @@ export async function undoCheckIn(done: CheckedIn): Promise<void> {
 /** Changes what a topic is about. */
 export async function editTopic(
   topicId: string,
-  fields: Partial<Pick<Topic, 'title' | 'notes' | 'link'>>,
+  fields: Partial<Pick<Topic, 'title' | 'notes' | 'link' | 'shelf'>>,
 ): Promise<void> {
   await put('topics', topicId, fields);
   await load();
@@ -244,6 +273,39 @@ export async function deleteTopic(topicId: string): Promise<void> {
   await load();
 }
 
+export const shelfOf = (topic: Pick<Topic, 'shelf'>): Shelf | null =>
+  memory.shelves.find((s) => s.id === topic.shelf) ?? null;
+
+/** The colour a new shelf gets: the first one no shelf has yet. */
+export const nextShelfColor = (): ShelfColor =>
+  SHELF_COLORS.find((c) => !memory.shelves.some((s) => s.color === c)) ??
+  SHELF_COLORS[memory.shelves.length % SHELF_COLORS.length]!;
+
+/** Makes a shelf; its id. */
+export async function addShelf(name: string, color: ShelfColor = nextShelfColor()): Promise<string> {
+  const id = data.newId();
+  await put('shelves', id, { name: name.trim(), color });
+  await load();
+  return id;
+}
+
+/** Renames or recolours a shelf. */
+export async function editShelf(
+  shelfId: string,
+  fields: Partial<Pick<Shelf, 'name' | 'color'>>,
+): Promise<void> {
+  await put('shelves', shelfId, fields.name === undefined ? fields : { ...fields, name: fields.name.trim() });
+  await load();
+}
+
+/** Removes a shelf; its topics stay, on no shelf. */
+export async function deleteShelf(shelfId: string): Promise<void> {
+  for (const t of memory.topics.filter((x) => x.shelf === shelfId))
+    await put('topics', t.id, { shelf: null });
+  await data.remove(ME, 'shelves', shelfId);
+  await load();
+}
+
 /** Changes settings; the time zone always follows this device's. */
 export async function saveSettings(change: Partial<Settings>): Promise<void> {
   const next = { ...memory.settings, ...change, tz: deviceZone() };
@@ -261,6 +323,14 @@ export async function saveSettings(change: Partial<Settings>): Promise<void> {
 /** Active topics whose end date has passed: time to finish or extend them. */
 export const finishedLines = (): Topic[] =>
   memory.topics.filter((t) => t.state === 'active' && t.endOn !== null && t.endOn < memory.today);
+
+/** How far a topic has grown: check-ins done, and about how many it gets in all. */
+export function growthOf(t: Topic): { done: number; total: number } {
+  const done = checkinsOf(t.id).length;
+  if (t.state === 'done') return { done, total: done };
+  const planned = t.endOn === null ? 0 : preview(planOf(t), memory.settings.retention).length;
+  return { done, total: Math.max(planned, done + (t.due ? 1 : 0)) };
+}
 
 /** The day of the last check-in of all, or null. */
 export const lastCheckInDay = (): Day | null =>

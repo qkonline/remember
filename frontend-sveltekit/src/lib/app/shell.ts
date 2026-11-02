@@ -20,4 +20,4 @@ export const appPublicPaths: string[] = [];
  * localStorage keys that are settings of the device, not the person (kept when someone else
  * signs in), beside the core's theme, mode and text size.
  */
-export const appDeviceKeys: string[] = ['remember:last-horizon'];
+export const appDeviceKeys: string[] = ['remember:last-horizon', 'remember:last-shelf'];

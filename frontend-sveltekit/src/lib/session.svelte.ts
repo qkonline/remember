@@ -11,7 +11,6 @@
 
 import { goto } from '$app/navigation';
 import { resolve } from '$app/paths';
-import type { Path } from '$app/types';
 import { analytics } from '#lib/analytics/index.ts';
 import {
   ApiError,
@@ -164,8 +163,9 @@ export async function replaceSession(result: SignIn): Promise<void> {
   auth.user = result.user;
 }
 
-/** Leave the app for a page, reloading so no state of the person stays in memory. */
-function leaveTo(path: Path): void {
+/** Leave the app for a page, reloading so no state of the person stays in memory. Its own
+ *  two paths, not `Path`: with more than 25 pages TypeScript can't match a union of every path. */
+function leaveTo(path: 'signin' | ''): void {
   window.location.assign(resolve(path));
 }
 
