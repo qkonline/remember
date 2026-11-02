@@ -301,16 +301,15 @@
 </Sheet>
 
 <style>
+  /* The greeting and the day read as one heading: the day sits right under it. */
   .td-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
+    display: grid;
+    gap: 0.125rem;
     margin: 0.25rem 0 1rem;
   }
   .td-head h1 {
     margin: 0;
-    font-size: 1.375rem;
+    font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--color-heading);
@@ -318,8 +317,7 @@
   .td-head p {
     margin: 0;
     color: var(--color-muted);
-    font-size: 0.875rem;
-    text-align: end;
+    font-size: 0.9375rem;
   }
   .td-grid {
     display: grid;
@@ -582,10 +580,10 @@
 
   @media (min-width: 40rem) {
     .td-head h1 {
-      font-size: 1.875rem;
+      font-size: 2rem;
     }
     .td-head p {
-      font-size: 0.9375rem;
+      font-size: 1rem;
     }
   }
 

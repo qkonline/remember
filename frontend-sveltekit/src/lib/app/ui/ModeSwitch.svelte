@@ -8,6 +8,9 @@
   import { t } from '#lib/i18n/index.svelte.ts';
   import { readPreferences, setPreferences } from '#lib/preferences.ts';
 
+  /** As a labelled row ("Dark mode"), for the sidebar; otherwise a round icon key. */
+  let { row = false }: { row?: boolean } = $props();
+
   let dark = $state(false);
 
   function shown(): boolean {
@@ -33,9 +36,10 @@
 <button
   type="button"
   class="ms"
+  class:ms-row={row}
   onclick={flip}
-  aria-label={dark ? t('Switch to light mode') : t('Switch to dark mode')}
-  title={dark ? t('Switch to light mode') : t('Switch to dark mode')}
+  aria-label={row ? undefined : dark ? t('Switch to light mode') : t('Switch to dark mode')}
+  title={row ? undefined : dark ? t('Switch to light mode') : t('Switch to dark mode')}
 >
   <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
     {#if dark}
@@ -48,6 +52,7 @@
       <path d="M16.5 12.2A6.8 6.8 0 017.8 3.5a6.8 6.8 0 108.7 8.7z" class="ms-fill" />
     {/if}
   </svg>
+  {#if row}<span>{dark ? t('Light mode') : t('Dark mode')}</span>{/if}
 </button>
 
 <style>
@@ -62,6 +67,25 @@
     background: none;
     color: var(--color-base-content);
     cursor: pointer;
+  }
+  .ms-row {
+    width: 100%;
+    height: auto;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+    color: var(--color-muted);
+    font: inherit;
+    text-align: start;
+  }
+  .ms-row svg {
+    width: 22px;
+    height: 22px;
+  }
+  .ms-row:hover {
+    color: var(--color-heading);
   }
   .ms:hover {
     background: var(--color-base-200);

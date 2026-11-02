@@ -96,14 +96,7 @@
     </header>
 
     <aside class="rf-side" aria-label={t('Remember')}>
-      <div class="rf-side-top">
-        <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={28} />{appName}</a>
-        <div class="rf-tools rf-side-tools">
-          {#if auth.features?.sync}<SyncStatus />{/if}
-          <ModeSwitch />
-          <Bell />
-        </div>
-      </div>
+      <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={44} />{appName}</a>
       <Key tone="leaf" wide onclick={() => startAdding()}>
         <Glyph name="plus" size={18} />{t('Add what you studied')}
       </Key>
@@ -131,6 +124,12 @@
         {/if}
       </nav>
       <div class="rf-me">
+        {#if auth.features?.sync}<div class="rf-sync"><SyncStatus /></div>{/if}
+        <div class="rf-bell-row">
+          <Bell />
+          <span class="rf-bell-label" aria-hidden="true"><Glyph name="bell" />{t('Notifications')}</span>
+        </div>
+        <ModeSwitch row />
         <button type="button" class="rf-row" onclick={() => feedback?.show()}>
           <Glyph name="message" /><span>{t('Send feedback')}</span>
         </button>
@@ -463,9 +462,12 @@
       padding: 1.5rem 1.125rem;
       border-right: 1px solid var(--color-base-300);
     }
+    /* The name and sprout span the sidebar: the one big thing in it. */
     .rf-brand-side {
-      padding: 0 0.375rem;
-      font-size: 1.125rem;
+      gap: 0.75rem;
+      padding: 0.25rem 0.25rem 0.5rem;
+      font-size: 1.625rem;
+      letter-spacing: -0.02em;
     }
     .rf-side :global(.rk) {
       white-space: nowrap;
@@ -506,24 +508,67 @@
       font-weight: 500;
       text-align: center;
     }
-    .rf-side-top {
+    /* The bell as a labelled row: the bell's own button stretches over the row (so the whole
+       row opens it), its unread count sits at the row's end, and its list opens upward. */
+    .rf-bell-row {
+      position: relative;
       display: flex;
       align-items: center;
-      gap: 0.25rem;
+      min-height: 2.75rem;
+      border-radius: 12px;
+      color: var(--color-muted);
     }
-    .rf-side-tools {
-      margin-inline-start: auto;
-      gap: 0;
+    .rf-bell-row:hover {
+      background: var(--color-base-200);
+      color: var(--color-heading);
     }
-    /* The bell's list opens down and to the right, over the page, not off the screen's edge. */
-    .rf-side :global(.bell .panel) {
+    .rf-bell-row:has(:focus-visible) {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+    .rf-bell-row :global(.bell) {
+      position: static;
+    }
+    .rf-bell-row :global(.bell .icon) {
+      position: absolute;
+      inset: 0;
+      width: auto;
+      height: auto;
+      z-index: 1;
+      background: none;
+      color: transparent;
+    }
+    .rf-bell-row :global(.bell .icon:focus-visible) {
+      outline: none;
+    }
+    .rf-bell-row :global(.bell .icon svg) {
+      display: none;
+    }
+    .rf-bell-row :global(.bell .count) {
+      top: 50%;
+      right: 0.75rem;
+      transform: translateY(-50%);
+      box-shadow: none;
+    }
+    .rf-bell-row :global(.bell .panel) {
+      top: auto;
+      bottom: calc(100% + 6px);
       left: 0;
       right: auto;
+    }
+    .rf-bell-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0 0.75rem;
+    }
+    .rf-sync {
+      padding: 0 0.375rem;
     }
     .rf-me {
       margin-top: auto;
       display: grid;
-      gap: 0.5rem;
+      gap: 0.125rem;
       padding-top: 0.75rem;
       border-top: 1px solid var(--color-base-300);
     }
@@ -550,6 +595,7 @@
       outline-offset: 2px;
     }
     .rf-person {
+      margin-top: 0.5rem;
       display: flex;
       align-items: center;
       gap: 0.75rem;
