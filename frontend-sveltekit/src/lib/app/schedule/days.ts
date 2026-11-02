@@ -52,3 +52,6 @@ export function today(now: Date = new Date(), timeZone?: string): Day {
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
+
+/** This moment, as an ISO string (when a check-in happened). */
+export const nowIso = (): string => new Date().toISOString();

@@ -54,8 +54,8 @@
 >
   <div class="modal-box sheet-box">
     <div class="sheet-grip" aria-hidden="true"></div>
-    <header class="sheet-head" class:sr-only={hideTitle}>
-      <h2 id="{uid}-title">{title}</h2>
+    <header class="sheet-head">
+      <h2 id="{uid}-title" class:sr-only={hideTitle}>{title}</h2>
       <button
         type="button"
         class="btn btn-ghost btn-sm btn-square"
@@ -91,13 +91,14 @@
   .sheet-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
   }
   .sheet-head h2 {
     font-size: 1.125rem;
     font-weight: 600;
     margin: 0;
+    margin-inline-end: auto;
   }
   .sheet-body {
     overflow-y: auto;
