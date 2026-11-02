@@ -1,5 +1,5 @@
-// Remember's synced tables (backend-cloudflare/src/app/sync.ts): topics, check-ins and the one
-// settings record, through the core's /sync paths. Follows the checklist in docs/offline-data.md:
+// Remember's synced tables (backend-cloudflare/src/app/sync.ts): topics, their shelves, check-ins
+// and the one settings record, through the core's /sync paths. Follows the checklist in docs/offline-data.md:
 // two devices offline each create a record, sent in either order and twice, and both are kept
 // with the ids they were made with.
 
@@ -94,6 +94,30 @@ describe.skipIf(!features.sync)('remember', () => {
     await push(other.token, [put('topics', t.record, { horizon: { kind: 'until', until: '2026-12-12' }, endOn: '2026-12-12' })]);
     const r = (await pullAll(p.token)).find((x) => x.id === t.record)!;
     expect(r.fields).toMatchObject({ notes: 'Light and dark reactions', endOn: '2026-12-12', title: 'Photosynthesis' });
+  });
+
+  test('two devices offline each make a shelf; a topic sits on one; a shelf needs a name and a colour', async () => {
+    const a = await signUp();
+    const b = await signIn(a.email);
+    const biology = put('shelves', id(), { name: 'Biology', color: 'green' });
+    const law = put('shelves', id(), { name: 'Law', color: 'rose' });
+    expect((await push(b.token, [law])).map((r) => r.status)).toEqual(['applied']);
+    expect((await push(a.token, [biology, biology])).map((r) => r.status)).toEqual(['applied', 'applied']);
+    const t = put('topics', id(), { ...topic('Krebs cycle'), shelf: biology.record });
+    const loose = put('topics', id(), { ...topic('Loose topic'), shelf: null });
+    expect((await push(a.token, [t, loose])).map((r) => r.status)).toEqual(['applied', 'applied']);
+
+    const [noName, blue, badShelf, extra] = await push(a.token, [
+      put('shelves', id(), { name: ' ', color: 'green' }),
+      put('shelves', id(), { name: 'Physics', color: 'blue' }),
+      put('topics', t.record, { shelf: 'not an id' }),
+      put('shelves', id(), { name: 'Maths', color: 'lime', icon: 'x' }),
+    ]);
+    for (const r of [noName, blue, badShelf, extra]) expect(r).toMatchObject({ status: 'refused', code: 'invalid_input' });
+
+    const records = await pullAll(b.token);
+    expect(records.filter((r) => r.table === 'shelves').map((r) => r.id).sort()).toEqual([biology.record, law.record].sort());
+    expect(records.find((r) => r.id === t.record)?.fields.shelf).toBe(biology.record);
   });
 
   test('a check-in is kept as made: a second put to it is refused, deleting it is allowed', async () => {

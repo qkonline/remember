@@ -1,11 +1,13 @@
 // THE APP'S OWN FILE: the rules for its synced tables (PRD section 11, docs/offline-data.md).
 // The core reads this and never changes it.
 //
-// Remember keeps three tables in each person's space:
+// Remember keeps four tables in each person's space:
 //
 // - `topics`: what the person studied and how long they need it. Fields merge later-wins (one
 //   person, their own devices). `card` and `due` are caches the device computes from the
 //   check-ins, so any device or the server can read them.
+// - `shelves`: the person's subjects (Biology, Law…), a name and a colour each; a topic names its
+//   shelf by id, or none. Later-wins like topics.
 // - `checkins`: one per recall, never edited once made (the schedule is rebuilt from them), so a
 //   second put to the same check-in is refused. They can be deleted with their topic.
 // - `settings`: one record per person, with a fixed id, so every device writes the same one.
@@ -24,6 +26,8 @@ const ID_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const HORIZONS = new Set(['week', 'month', 'quarter', 'half', 'year', 'forever', 'until', 'custom']);
 const RATINGS = new Set(['forgot', 'hazy', 'got']);
 const RETENTIONS = new Set([0.8, 0.9, 0.95]);
+/** Shelf colours: Remember's palette has no blue. */
+const SHELF_COLORS = new Set(['green', 'rose', 'yellow', 'fuchsia', 'lime', 'sand']);
 
 function isDay(v: unknown): boolean {
   if (typeof v !== 'string' || !DAY_RE.test(v)) return false;
@@ -69,12 +73,18 @@ const topicChecks: Record<string, (v: unknown) => string | null> = {
   state: (v) => (v === 'active' || v === 'done' ? null : 'A topic is active or done.'),
   due: (v) => (isDayOrNull(v) ? null : 'The next check-in must be a day.'),
   doneOn: (v) => (isDayOrNull(v) ? null : 'The finishing date must be a day.'),
+  shelf: (v) => (v === null || (typeof v === 'string' && ID_RE.test(v)) ? null : 'A topic sits on one of your shelves, or none.'),
   card: (v) =>
     isObject(v) &&
     ['stability', 'difficulty', 'reps', 'lapses'].every((k) => typeof v[k] === 'number' && Number.isFinite(v[k] as number)) &&
     isDayOrNull(v.last)
       ? null
       : 'The memory state is not readable.',
+};
+
+const shelfChecks: Record<string, (v: unknown) => string | null> = {
+  name: (v) => (typeof v === 'string' && v.trim().length >= 1 && v.length <= 40 ? null : 'A shelf needs a name of 1 to 40 characters.'),
+  color: (v) => (typeof v === 'string' && SHELF_COLORS.has(v) ? null : 'Pick one of the shelf colours.'),
 };
 
 const checkinChecks: Record<string, (v: unknown) => string | null> = {
@@ -104,6 +114,9 @@ export const syncRules: SyncRules = {
         c.op === 'put'
           ? fieldsProblem(c.fields ?? {}, topicChecks, ['title', 'studiedOn', 'horizon', 'state'], !current)
           : null,
+    },
+    shelves: {
+      check: (c, current) => (c.op === 'put' ? fieldsProblem(c.fields ?? {}, shelfChecks, ['name', 'color'], !current) : null),
     },
     checkins: {
       check: (c, current) => {
