@@ -55,7 +55,8 @@
     "@starter/contract": "file:../contract",
     "idb": "^8.0.4",
     "openapi-fetch": "^0.17.0",
-    "posthog-js": "^1.441.2"
+    "posthog-js": "^1.441.2",
+    "ts-fsrs": "^6.0.0"
   },
   "imports": {
     "#lib": "./src/lib",
