@@ -7,10 +7,42 @@ version up, and copy over the core's files (never the app's own: `src/app/`, `sr
 
 Each entry says what an app has to do, if anything, under **To take it**.
 
+## 0.3.1 (2 November 2026)
+
+Fixes found building the first app on 0.3.0.
+
+- The browser tests no longer wait for the placeholder home page's heading: the signed-in layout
+  marks itself with `data-signed-in` and they wait for that, so they keep passing once an app
+  replaces `/app`.
+- An app can draw its own frame (a sidebar, a tab bar) around its signed-in pages in place of
+  the core's header and footer: `appFrame` in the new `src/lib/app/frame.ts`.
+- The signed-in header's brand and Home link go to `homePath`; on phones its links move to a row
+  of their own that scrolls sideways.
+- `npm run deploy` in the frontend works on Wrangler 4.155 and later (`--force`, which keeps it on
+  classic Pages).
+- `onlyListed: true` in `src/app/sync.ts` no longer fails the core's sync tests: a backend in
+  local development still takes the tests' `test_…` tables; a deployed one doesn't.
+- Signing out no longer stops type checking once an app has more than about 25 pages.
+- `MAIL_PER_DAY` caps the app's emails a day, of every kind (100 in `wrangler.toml`), for a
+  Resend account several apps share.
+
+**To take it**:
+
+1. In `frontend-sveltekit/`, copy the core's files over: `package.json` (the deploy scripts),
+   `src/lib/session.svelte.ts`, `src/routes/(app)/+layout.svelte` and `e2e/`. Add
+   `src/lib/app/frame.ts` from the template if the app doesn't have one (it's the app's own file
+   from now on). If the app had changed the `(app)` layout to draw its own frame, move that into
+   `frame.ts` and take the core's layout.
+2. In `backend-cloudflare/`, copy over `src/env.ts`, `src/mail.ts`, `src/mail.test.ts`,
+   `src/routes/sync.ts` and `src/sync/` (not `src/app/sync.ts`, which is the app's).
+3. In `contract/`, copy over `tests/sync.test.ts`.
+4. Add `MAIL_PER_DAY` to `[vars]` in `wrangler.toml` and `wrangler.staging.toml`: the app's
+   share of the mail plan's daily emails, or `""` for no cap of its own.
+
 ## 0.3.0 (2 November 2026)
 
-The frontend's look is now DaisyUI 5 on Tailwind CSS 4, in a theme of its own, **Daisy** (the
-Fusion theme is gone). The components keep their names and props, so pages built on them need no
+The frontend's look is now DaisyUI 5 on Tailwind CSS 4, in a theme of its own, **Daisy**, which
+replaces the earlier one. The components keep their names and props, so pages built on them need no
 change; there are 30 new ones beside them, and a gallery of all of them at `/components` under
 `npm run dev`.
 
@@ -20,9 +52,9 @@ change; there are 30 new ones beside them, and a gallery of all of them at `/com
    then copy the core's files over: `vite.config.ts`, `src/app.css`, `src/app.html`,
    `src/lib/themes/`, `src/lib/components/`, `e2e/`, the layouts (`src/routes/+layout.svelte`,
    `(app)/`, `(auth)/`, `(site)/`), `(site)/+page.svelte`, `(app)/admin/+page.svelte`,
-   `(open)/invite/+page.svelte` and the new `(open)/components/`. Delete
-   `src/lib/themes/fusion.css`.
-2. Your own pages' styles: the Fusion tokens for how controls, buttons, panels, segmented choices,
+   `(open)/invite/+page.svelte` and the new `(open)/components/`. Delete the earlier theme's
+   file from `src/lib/themes/` (every file there but `daisy.css` and your own themes).
+2. Your own pages' styles: the earlier theme's tokens for how controls, buttons, panels, segmented choices,
    badges, notices, tables and the top bar look are gone (`--control-*` except
    `--control-height`, `--button-*`, `--panel-*`, `--segmented-*`, `--badge-*`, `--notice-*`,
    `--table-head-bg`, `--header-bg`, `--header-border`, `--header-shadow`, and
@@ -36,7 +68,7 @@ change; there are 30 new ones beside them, and a gallery of all of them at `/com
    them (the core renamed `card`, `hero`, `label`, `loading`, `toast`). The `.label` helper is
    gone: use `fieldset-legend`.
 4. A theme of your own: rewrite it as DaisyUI's variables (see `src/lib/themes/daisy.css` and
-   the frontend README). Someone who had picked `fusion` gets the default theme.
+   the frontend README). Someone who had picked the earlier theme gets the default one.
 
 - Components, new: `Checkbox`, `Toggle`, `RadioGroup`, `Range`, `FileInput`, `Rating`, `Tabs`,
   `Collapse` (accordion with `group`), `Modal`, `Drawer`, `Dropdown`, `Menu`, `Tooltip`,

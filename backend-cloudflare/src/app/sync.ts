@@ -101,9 +101,9 @@ const settingsChecks: Record<string, (v: unknown) => string | null> = {
   retention: (v) => (typeof v === 'number' && RETENTIONS.has(v) ? null : 'Choose Relaxed, Balanced or Intense.'),
 };
 
-// `onlyListed` stays false: the core's contract suite syncs example tables (`appointments`) and
-// must pass against this backend. Other tables stay in the person's own space and Remember never
-// reads them.
+// `onlyListed` is false for now: other tables stay in the person's own space and Remember never
+// reads them. Since template 0.3.1 it could be true (a local backend still takes the contract
+// suite's `test_…` tables); whether to turn it on is still to be decided.
 export const syncRules: SyncRules = {
   onlyListed: false,
   // Due days and the reminder time, copied to D1 for the daily reminder (reminders.ts).

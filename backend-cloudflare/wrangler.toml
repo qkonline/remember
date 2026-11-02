@@ -31,6 +31,10 @@ APP_URL = "https://remember.kaiserkhan.com"
 # Passkeys belong to this domain and its subdomains. Locally, localhost.
 RP_ID = "remember.kaiserkhan.com"
 MAIL_FROM = "Remember <remember@kaiserkhan.com>"
+# Emails a day from this app, of every kind; empty for no cap of its own. Resend's free plan
+# sends 100 a day for the whole account: with several apps on one account, give each a part.
+# Remember: 30 (Elastic 30 and Boardo 35 share its Resend account).
+MAIL_PER_DAY = "30"
 # Switches ("true" or "false"). Email codes cost an email from the quota each time.
 EMAIL_CODE = "false"
 REQUIRE_VERIFIED_EMAIL = "false"

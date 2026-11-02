@@ -2,23 +2,12 @@
 // at a time (notes on request, Undo), find them on the Shelves page and their own page, and the
 // settings on You. Plus the phone frame: the tab bar and its raised + key.
 import { expect, test, type Page } from '@playwright/test';
-import { backendUp, latestCode, uniqueEmail } from './helpers';
+import { backendUp, signUp as coreSignUp, uniqueEmail } from './helpers';
 
-/** Sign up and land on Today, confirming the email first when the backend asks for it. */
+/** Sign up with the core's helper (it confirms the email when asked) and land on Today. */
 async function signUp(page: Page, email: string, password: string) {
-  await page.goto('/signup');
-  await page.getByLabel('Email').fill(email);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/\/app$/);
-  const gate = page.getByRole('heading', { name: 'Confirm your email' });
-  const today = page.getByRole('heading', { name: 'Studied something today?' });
-  await expect(gate.or(today)).toBeVisible();
-  if (await gate.isVisible()) {
-    await page.getByLabel('Code').fill(await latestCode(email));
-    await page.getByRole('button', { name: 'Confirm email' }).click();
-    await expect(today).toBeVisible();
-  }
+  await coreSignUp(page, email, password);
+  await expect(page.getByRole('heading', { name: 'Studied something today?' })).toBeVisible();
 }
 
 /** The Add sheet's dialog, opened from the sidebar (computer) or the tab bar (phone). */

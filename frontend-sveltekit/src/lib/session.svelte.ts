@@ -163,8 +163,10 @@ export async function replaceSession(result: SignIn): Promise<void> {
   auth.user = result.user;
 }
 
-/** Leave the app for a page, reloading so no state of the person stays in memory. Its own
- *  two paths, not `Path`: with more than 25 pages TypeScript can't match a union of every path. */
+/**
+ * Leave the app for a page, reloading so no state of the person stays in memory. Its own two
+ * paths rather than `Path`: past about 25 pages, TypeScript can no longer match a union of them all.
+ */
 function leaveTo(path: 'signin' | ''): void {
   window.location.assign(resolve(path));
 }
