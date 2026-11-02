@@ -559,6 +559,27 @@
     color: var(--color-muted);
   }
 
+  /* Phones and tablets: the calm states (nothing yet, all caught up) stand centred, the plant
+     above the words and the key under them. */
+  @media (max-width: 63.99rem) {
+    .td-hero:not(.td-hero-stack) {
+      justify-items: center;
+      text-align: center;
+      padding-block: 1.5rem 1.75rem;
+    }
+    .td-hero:not(.td-hero-stack) .td-plant {
+      position: static;
+      margin-bottom: -1.25rem;
+    }
+    .td-hero:not(.td-hero-stack) .td-calm {
+      padding-right: 0;
+      margin-top: 0;
+    }
+    .td-start-calm {
+      justify-self: center;
+    }
+  }
+
   @media (min-width: 40rem) {
     .td-head h1 {
       font-size: 1.875rem;

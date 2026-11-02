@@ -21,7 +21,10 @@
   import SyncRefused from '#lib/components/shell/SyncRefused.svelte';
   import SyncStatus from '#lib/components/shell/SyncStatus.svelte';
   import Trans from '#lib/components/Trans.svelte';
-  import { memory, watch } from '#lib/app/store.svelte.ts';
+  import { load, memory, watch } from '#lib/app/store.svelte.ts';
+  import { syncNow } from '#lib/db/index.svelte.ts';
+  import { notifications } from '#lib/notifications.svelte.ts';
+  import PullToRefresh from '#lib/app/ui/PullToRefresh.svelte';
   import { todayList } from '#lib/app/schedule/index.ts';
   import { startAdding, ui } from '#lib/app/ui.svelte.ts';
   import AddSheet from '#lib/app/ui/AddSheet.svelte';
@@ -35,6 +38,20 @@
   let { user, children }: { user: User; children: Snippet } = $props();
 
   onMount(() => watch());
+
+  // The top bar's hairline shows only once the page has scrolled under it, like a native bar.
+  let scrolled = $state(false);
+  onMount(() => {
+    const on = () => (scrolled = window.scrollY > 4);
+    on();
+    addEventListener('scroll', on, { passive: true });
+    return () => removeEventListener('scroll', on);
+  });
+
+  async function refresh() {
+    await syncNow();
+    await Promise.all([load(), notifications.refresh()]);
+  }
 
   type Tab =
     '/(app)/app' | '/(app)/topics' | '/(app)/topic' | '/(app)/growth' | '/(app)/settings' | '/(app)/account';
@@ -67,9 +84,11 @@
 
 <div class="rf" class:rf-bare={bare}>
   {#if !bare}
-    <header class="rf-top">
-      <a class="rf-brand" href={resolve('/(app)/app')}><Logo />{appName}</a>
-      <div class="rf-tools">
+    <header class="rf-top" class:rf-scrolled={scrolled}>
+      <a class="rf-home" href={resolve('/(app)/app')} aria-label={t('{app}: Today', { app: appName })}
+        ><Logo size={32} /></a
+      >
+      <div class="rf-tools rf-top-tools">
         {#if auth.features?.sync}<SyncStatus />{/if}
         <ModeSwitch />
         <Bell />
@@ -172,6 +191,7 @@
   {/if}
 </div>
 
+{#if !bare}<PullToRefresh onrefresh={refresh} />{/if}
 <AddSheet bind:open={ui.adding} />
 {#if ui.note}
   {#key ui.note}
@@ -248,16 +268,49 @@
     }
   }
 
+  /* The phone's top bar: the sprout alone on the left (home), the tools in soft round keys on
+     the right; see-through over what scrolls under it, with a hairline only once it does. */
   .rf-top {
     position: sticky;
     top: 0;
     z-index: 20;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     min-height: 3.5rem;
-    padding: env(safe-area-inset-top) 1rem 0;
-    background: var(--color-base-100);
+    padding: env(safe-area-inset-top) 0.75rem 0 1rem;
+    background: color-mix(in oklab, var(--color-base-100) 82%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    backdrop-filter: saturate(1.4) blur(14px);
+    box-shadow: 0 1px 0 transparent;
+    transition: box-shadow 160ms ease;
+  }
+  .rf-scrolled {
+    box-shadow: 0 1px 0 var(--color-base-300);
+  }
+  .rf-home {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-inline-start: -0.375rem;
+    border-radius: 14px;
+  }
+  .rf-home:active {
+    transform: scale(0.94);
+  }
+  .rf-top-tools {
+    gap: 0.375rem;
+  }
+  .rf-top-tools > :global(*:not(.bell)),
+  .rf-top-tools :global(.bell .icon) {
+    border-radius: 999px;
+  }
+  .rf-top-tools :global(.ms),
+  .rf-top-tools :global(.bell .icon) {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: var(--color-base-200);
   }
   .rf-brand {
     display: inline-flex;
@@ -350,6 +403,7 @@
   .rf-nav a:focus-visible,
   .rf-add:focus-visible,
   .rf-brand:focus-visible,
+  .rf-home:focus-visible,
   .rf-person:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;

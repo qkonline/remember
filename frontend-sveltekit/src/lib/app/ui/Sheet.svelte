@@ -120,9 +120,18 @@
   .sheet-close {
     flex: none;
   }
+  /* Room on every side for a field's focus ring, which the scrolling would otherwise cut off. */
   .sheet-body {
     overflow-y: auto;
     flex: 1;
+    padding: 4px;
+    margin: -4px;
+  }
+  /* One clear focus mark on fields: a green border and a soft ring, not border plus outline. */
+  .sheet-body :global(:is(.input, .textarea, .select):focus-within) {
+    outline: none;
+    border-color: var(--color-leaf-line);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-leaf-line) 22%, transparent);
   }
   .sheet-foot {
     display: flex;
