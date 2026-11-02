@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { resolve } from '$app/paths';
   import { appName } from '#lib/config.ts';
   import { t, tn } from '#lib/i18n/index.svelte.ts';
   import {
@@ -126,7 +127,19 @@
 
 <div class="today">
   <header class="td-head">
-    <p class="td-date">{longDay(today)}</p>
+    <div class="td-top">
+      <p class="td-date">{longDay(today)}</p>
+      <a class="td-settings" href={resolve('/(app)/settings')}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+          ><circle cx="8" cy="8" r="2.25" fill="none" stroke="currentColor" stroke-width="1.6" /><path
+            d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          /></svg
+        >{t('Settings')}</a
+      >
+    </div>
     {#if !memory.loaded}
       <p class="td-loading" aria-live="polite">{t('Loading your topics…')}</p>
     {:else if list.now.length}
@@ -248,8 +261,34 @@
   .td-head {
     margin-bottom: 1.5rem;
   }
+  .td-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .td-settings {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-height: 2.75rem;
+    padding-inline: 0.25rem;
+    color: var(--color-muted);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    text-decoration: none;
+  }
+  .td-settings:hover {
+    color: var(--color-primary);
+  }
+  .td-settings:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
   .td-date {
-    margin: 0 0 0.75rem;
+    margin: 0;
     color: var(--color-muted);
     font-weight: 500;
   }

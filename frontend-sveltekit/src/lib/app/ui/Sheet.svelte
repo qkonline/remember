@@ -15,6 +15,7 @@
     open = $bindable(false),
     dismissible = true,
     hideTitle = false,
+    large = false,
     onclose,
     foot,
     children,
@@ -25,6 +26,8 @@
     dismissible?: boolean;
     /** The title is still read out, but not shown (the content carries its own heading). */
     hideTitle?: boolean;
+    /** A larger title, when the title is the content (a topic on its recall card). */
+    large?: boolean;
     onclose?: () => void;
     foot?: Snippet;
     children: Snippet;
@@ -55,13 +58,22 @@
   <div class="modal-box sheet-box">
     <div class="sheet-grip" aria-hidden="true"></div>
     <header class="sheet-head">
-      <h2 id="{uid}-title" class:sr-only={hideTitle}>{title}</h2>
+      <h2 id="{uid}-title" class:sr-only={hideTitle} class:sheet-large={large}>{title}</h2>
       <button
         type="button"
-        class="btn btn-ghost btn-sm btn-square"
+        class="btn btn-ghost btn-square sheet-close"
         aria-label={t('Close')}
-        onclick={() => (open = false)}>✕</button
+        onclick={() => (open = false)}
       >
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"
+          ><path
+            d="M4.5 4.5l9 9M13.5 4.5l-9 9"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          /></svg
+        >
+      </button>
     </header>
     <div class="sheet-body">{@render children()}</div>
     {#if foot}<footer class="sheet-foot">{@render foot()}</footer>{/if}
@@ -100,6 +112,14 @@
     margin: 0;
     margin-inline-end: auto;
   }
+  .sheet-head .sheet-large {
+    font-size: 1.5rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  .sheet-close {
+    flex: none;
+  }
   .sheet-body {
     overflow-y: auto;
     flex: 1;
@@ -107,6 +127,13 @@
   .sheet-foot {
     display: flex;
     gap: 0.625rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet-box,
+    dialog {
+      transition: none;
+      animation: none;
+    }
   }
   @media (min-width: 40rem) {
     .sheet-box {

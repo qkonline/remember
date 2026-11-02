@@ -5,8 +5,8 @@ import { msg } from '#lib/i18n/index.svelte.ts';
 
 /** Links in the signed-in header, after Home; labels in English, wrapped in msg() so they're translated. `match: 'prefix'` marks it current on its sub-pages too. */
 export const appNav: { label: string; path: string; match?: 'exact' | 'prefix' }[] = [
+  // Settings is linked from Today: the core header has room for one link of ours on a phone.
   { label: msg('Topics'), path: 'topics', match: 'prefix' },
-  { label: msg('Settings'), path: 'settings' },
 ];
 
 /**

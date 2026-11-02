@@ -9,7 +9,7 @@
     message,
     onundo,
     ondone,
-    ms = 6000,
+    ms = 10000,
   }: { message: string; onundo?: () => void; ondone: () => void; ms?: number } = $props();
 
   let hold = $state(false);

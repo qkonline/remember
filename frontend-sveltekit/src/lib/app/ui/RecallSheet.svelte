@@ -48,10 +48,9 @@
   }
 </script>
 
-<Sheet title={topic?.title ?? t('Check yourself')} bind:open hideTitle>
+<Sheet title={topic?.title ?? t('Check yourself')} bind:open large>
   {#if topic}
     <article class="rc">
-      <h2 class="rc-title">{topic.title}</h2>
       {#if restudy}
         <p class="rc-prompt">
           {restudy.next
@@ -101,14 +100,6 @@
     gap: 0.875rem;
     padding-top: 0.25rem;
   }
-  .rc-title {
-    font-size: 1.5rem;
-    line-height: 1.25;
-    font-weight: 600;
-    margin: 0;
-    color: var(--color-heading);
-    overflow-wrap: anywhere;
-  }
   .rc-prompt {
     margin: 0;
     color: var(--color-muted);
@@ -131,8 +122,9 @@
     border-radius: 4px;
   }
   .rc-notes {
-    border-inline-start: 3px solid var(--color-base-300);
-    padding-inline-start: 0.875rem;
+    background: var(--color-base-200);
+    border-radius: var(--radius-field);
+    padding: 0.875rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
