@@ -22,7 +22,7 @@
   const steps = [
     {
       title: 'Add what you studied',
-      text: 'Type the topic, put it on a shelf like Biology or Law, and choose how long you need it: a week, until your exam, or for good.',
+      text: 'Type the topic, put it in a category like Biology or Law, and choose how long you need it: a week, until your exam, or for good.',
     },
     {
       title: 'Check yourself for a few minutes a day',

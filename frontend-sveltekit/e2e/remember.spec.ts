@@ -1,4 +1,4 @@
-// Remember's core loop against a real backend: plant topics on shelves, refresh today's cards one
+// Remember's core loop against a real backend: plant topics in categories, refresh today's cards one
 // at a time (notes on request, Undo), find them on the Shelves page and their own page, and the
 // settings on You. Plus the phone frame: the tab bar and its raised + key.
 import { expect, test, type Page } from '@playwright/test';
@@ -22,20 +22,22 @@ test.beforeAll(async () => {
   test.skip(!(await backendUp()), 'No backend at API_URL: start one, then run again.');
 });
 
-test('plant on shelves, refresh one card at a time, undo, and find it on its shelf', async ({ page }) => {
+test('plant in categories, refresh one card at a time, undo, and find it in its category', async ({
+  page,
+}) => {
   await signUp(page, uniqueEmail('remember'), 'correct horse battery');
 
-  // Studied today, on a new shelf: it comes back tomorrow, so today stays clear.
+  // Studied today, in a new category: it comes back tomorrow, so today stays clear.
   let sheet = await openAdd(page);
   await sheet.getByLabel('What did you study?').fill('Krebs cycle');
-  await sheet.getByRole('radio', { name: 'New shelf' }).check();
-  await sheet.getByLabel('Name of the new shelf').fill('Biology');
+  await sheet.getByRole('radio', { name: 'New category' }).check();
+  await sheet.getByLabel('Name of the new category').fill('Biology');
   await expect(sheet.getByText(/It comes back \d+ times/)).toBeVisible();
   await sheet.getByRole('button', { name: 'Plant it' }).click();
   await expect(page.getByRole('status').filter({ hasText: /First check-in tomorrow/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'All caught up' })).toBeVisible();
 
-  // Studied earlier, with notes, on the shelf used last: its first check-in is already due.
+  // Studied earlier, with notes, in the category used last: its first check-in is already due.
   sheet = await openAdd(page);
   await sheet.getByLabel('What did you study?').fill('Photosynthesis');
   await expect(sheet.getByRole('radio', { name: 'Biology' })).toBeChecked();
@@ -63,8 +65,8 @@ test('plant on shelves, refresh one card at a time, undo, and find it on its she
   await page.getByRole('button', { name: 'Back to Today' }).click();
   await expect(page).toHaveURL(/\/app$/);
 
-  // Shelves: the Biology pot holds both; the topic page has its check-in and can be deleted.
-  await page.getByRole('link', { name: 'Shelves' }).first().click();
+  // Categories: the Biology pot holds both; the topic page has its check-in and can be deleted.
+  await page.getByRole('link', { name: 'Categories' }).first().click();
   await page.getByRole('button', { name: /Biology/ }).click();
   await expect(page.getByText('Only Biology')).toBeVisible();
   await expect(page.getByRole('link', { name: /Krebs cycle/ })).toBeVisible();
@@ -110,35 +112,34 @@ test('on a phone: the tab bar moves between pages and its + key opens the Add sh
   await expect(page.getByRole('dialog', { name: 'Plant something new' })).toBeVisible();
 });
 
-test('shelves: make one, rename and recolour it, and remove it', async ({ page }) => {
-  await signUp(page, uniqueEmail('shelves'), 'correct horse battery');
-  await page.getByRole('link', { name: 'Shelves' }).first().click();
-  await page.getByRole('button', { name: 'Make a shelf first' }).click();
-  let sheet = page.getByRole('dialog', { name: 'New shelf' });
+test('categories: make one, rename and recolour it, and remove it', async ({ page }) => {
+  await signUp(page, uniqueEmail('categories'), 'correct horse battery');
+  await page.getByRole('link', { name: 'Categories' }).first().click();
+  await page.getByRole('button', { name: 'Make a category first' }).click();
+  let sheet = page.getByRole('dialog', { name: 'New category' });
   await sheet.getByLabel('Name').fill('Biology');
-  await sheet.getByRole('button', { name: 'Make shelf' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Made the Biology shelf.' })).toBeVisible();
+  await sheet.getByRole('button', { name: 'Make category' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Made the Biology category.' })).toBeVisible();
   await expect(page.getByText('Only Biology')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Manage shelves' }).click();
-  await page.getByRole('button', { name: 'Edit Biology' }).click();
-  sheet = page.getByRole('dialog', { name: 'Edit shelf' });
+  await page.getByRole('button', { name: 'Edit category' }).click();
+  sheet = page.getByRole('dialog', { name: 'Edit category' });
   await sheet.getByLabel('Name').fill('Cell biology');
   await sheet.getByRole('radio', { name: 'Rose' }).check();
-  await sheet.getByRole('button', { name: 'Save shelf' }).click();
+  await sheet.getByRole('button', { name: 'Save category' }).click();
   await expect(page.getByText('Only Cell biology')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Edit shelf' }).click();
+  await page.getByRole('button', { name: 'Edit category' }).click();
   await page
-    .getByRole('dialog', { name: 'Edit shelf' })
-    .getByRole('button', { name: 'Remove this shelf' })
+    .getByRole('dialog', { name: 'Edit category' })
+    .getByRole('button', { name: 'Remove this category' })
     .click();
   await page
     .getByRole('dialog', { name: 'Remove Cell biology?' })
-    .getByRole('button', { name: 'Remove shelf' })
+    .getByRole('button', { name: 'Remove category' })
     .click();
   await expect(page.getByRole('status').filter({ hasText: 'Removed Cell biology.' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'An empty shelf, ready to grow' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Nothing planted yet' })).toBeVisible();
 });
 
 // What the core's tests leave to the app (frontend README): Remember's own way to the account

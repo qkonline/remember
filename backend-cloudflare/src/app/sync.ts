@@ -73,7 +73,7 @@ const topicChecks: Record<string, (v: unknown) => string | null> = {
   state: (v) => (v === 'active' || v === 'done' ? null : 'A topic is active or done.'),
   due: (v) => (isDayOrNull(v) ? null : 'The next check-in must be a day.'),
   doneOn: (v) => (isDayOrNull(v) ? null : 'The finishing date must be a day.'),
-  shelf: (v) => (v === null || (typeof v === 'string' && ID_RE.test(v)) ? null : 'A topic sits on one of your shelves, or none.'),
+  shelf: (v) => (v === null || (typeof v === 'string' && ID_RE.test(v)) ? null : 'A topic belongs to one of your categories, or none.'),
   card: (v) =>
     isObject(v) &&
     ['stability', 'difficulty', 'reps', 'lapses'].every((k) => typeof v[k] === 'number' && Number.isFinite(v[k] as number)) &&
@@ -83,8 +83,8 @@ const topicChecks: Record<string, (v: unknown) => string | null> = {
 };
 
 const shelfChecks: Record<string, (v: unknown) => string | null> = {
-  name: (v) => (typeof v === 'string' && v.trim().length >= 1 && v.length <= 40 ? null : 'A shelf needs a name of 1 to 40 characters.'),
-  color: (v) => (typeof v === 'string' && SHELF_COLORS.has(v) ? null : 'Pick one of the shelf colours.'),
+  name: (v) => (typeof v === 'string' && v.trim().length >= 1 && v.length <= 40 ? null : 'A category needs a name of 1 to 40 characters.'),
+  color: (v) => (typeof v === 'string' && SHELF_COLORS.has(v) ? null : 'Pick one of the category colours.'),
 };
 
 const checkinChecks: Record<string, (v: unknown) => string | null> = {

@@ -68,6 +68,9 @@
 
 <style>
   .ws {
+    /* Sized by the page, never by its pots, so a full sill shrinks them instead of pushing the
+       page wider than a phone. */
+    contain: inline-size;
     position: relative;
     padding: 1rem 0.75rem 0;
     border-radius: 22px 22px 6px 6px;
@@ -126,7 +129,13 @@
     display: grid;
     justify-items: center;
     gap: 0.125rem;
-    width: 4.5rem;
+    flex: 0 1 4.5rem;
+    min-width: 0;
+  }
+  /* On a narrow phone the pots shrink to fit the window rather than spill past it. */
+  .ws-pot :global(.gp) {
+    max-width: 100%;
+    height: auto;
   }
   .ws-label {
     max-width: 100%;
@@ -148,6 +157,7 @@
     stroke-width: 1.3;
   }
   .ws-more {
+    flex: none;
     align-self: center;
     font-size: 0.8125rem;
     font-weight: 500;

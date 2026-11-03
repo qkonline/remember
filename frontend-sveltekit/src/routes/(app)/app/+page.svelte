@@ -36,6 +36,7 @@
   import HorizonPicker from '#lib/app/ui/HorizonPicker.svelte';
   import Key from '#lib/app/ui/Key.svelte';
   import GrowingPot from '#lib/app/ui/GrowingPot.svelte';
+  import Plank from '#lib/app/ui/Plank.svelte';
   import Windowsill from '#lib/app/ui/Windowsill.svelte';
   import ShelfMark from '#lib/app/ui/ShelfMark.svelte';
   import Sheet from '#lib/app/ui/Sheet.svelte';
@@ -264,23 +265,27 @@
       {#if pots.length}
         <section class="td-sec" aria-labelledby="shelves-title">
           <div class="td-sec-head">
-            <h2 id="shelves-title" class="td-h2">{t('Your shelves')}</h2>
+            <h2 id="shelves-title" class="td-h2">{t('Your categories')}</h2>
             <a href={resolve('/(app)/topics')}>{t('See all topics')}</a>
           </div>
-          <ul class="td-pots">
-            {#each pots as p (p.shelf?.id ?? 'none')}
-              <li>
-                <a href={p.href}>
-                  <GrowingPot shelf={p.shelf} leaves={Math.min(6, p.count)} size={56} />
-                  <span class="td-pot-name">{p.shelf?.name ?? t('No shelf')}</span>
-                  <span class="td-pot-due">
-                    {p.due ? tn(p.due, '1 due', '{count} due') : p.count ? t('Caught up') : t('Empty')}
-                  </span>
-                </a>
-              </li>
-            {/each}
-          </ul>
-          <span class="td-plank" aria-hidden="true"></span>
+          <div class="td-rack">
+            <div class="td-board"><Plank /></div>
+            <ul class="td-pots">
+              {#each pots as p (p.shelf?.id ?? 'none')}
+                <li>
+                  <a href={p.href}>
+                    <span class="td-pot-art"
+                      ><GrowingPot shelf={p.shelf} leaves={Math.min(6, p.count)} size={56} /></span
+                    >
+                    <span class="td-pot-name">{p.shelf?.name ?? t('No category')}</span>
+                    <span class="td-pot-due">
+                      {p.due ? tn(p.due, '1 due', '{count} due') : p.count ? t('Caught up') : t('Empty')}
+                    </span>
+                  </a>
+                </li>
+              {/each}
+            </ul>
+          </div>
         </section>
       {/if}
     </div>
@@ -357,6 +362,8 @@
   }
   .td-grid {
     display: grid;
+    /* One column no wider than the screen: the categories row scrolls inside it. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 1.75rem;
   }
 
@@ -447,22 +454,46 @@
     font-weight: 500;
     color: var(--color-heading);
   }
+  /* The categories on a wooden shelf: the board sits at the pots' feet (0.5rem + a 56px pot's
+     foot), the names below it; the pots scroll along it on a phone. */
+  .td-rack {
+    position: relative;
+  }
+  .td-board {
+    position: absolute;
+    top: calc(0.5rem + 66px);
+    left: 0;
+    right: 0;
+  }
+  .td-board :global(.pk) {
+    --pk-inset: 0.25rem;
+  }
   .td-pots {
+    position: relative;
     list-style: none;
     margin: 0;
-    padding: 0 0.25rem;
+    padding: 0 1.5rem 0.25rem;
     display: flex;
-    align-items: flex-end;
-    gap: 0.5rem;
+    gap: 0.25rem;
     overflow-x: auto;
     scrollbar-width: none;
   }
-  .td-plank {
+  .td-pot-art {
     display: block;
-    height: 0.625rem;
-    border-radius: 4px;
-    background: light-dark(#e3d5bc, #4a4234);
-    box-shadow: inset 0 3px 0 light-dark(#efe5d3, #5a5141);
+    height: 73px;
+    margin-bottom: 1.125rem;
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .td-pots a:hover .td-pot-art {
+    transform: translateY(-3px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .td-pot-art {
+      transition: none;
+    }
+    .td-pots a:hover .td-pot-art {
+      transform: none;
+    }
   }
   .td-pots a {
     display: grid;
@@ -473,9 +504,6 @@
     border-radius: 16px;
     text-decoration: none;
     color: var(--color-heading);
-  }
-  .td-pots a:hover {
-    background: var(--color-base-200);
   }
   .td-pots a:focus-visible {
     outline: 2px solid var(--color-primary);
@@ -583,6 +611,17 @@
     .td-grid:not(:has(.td-week)) {
       max-width: 52rem;
     }
+    .td-pots {
+      scrollbar-width: thin;
+    }
+  }
+
+  /* The hero puts the sill beside the words only when its own column has room for both (with
+     the week beside it, a laptop's column doesn't). */
+  .td-main {
+    container: today / inline-size;
+  }
+  @container today (min-width: 46rem) {
     .td-hero {
       grid-template-columns: minmax(0, 1fr) minmax(17rem, 24rem);
       gap: 2rem;
@@ -605,9 +644,6 @@
     }
     .td-start {
       max-width: 17rem;
-    }
-    .td-pots {
-      overflow: visible;
     }
   }
 </style>

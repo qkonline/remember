@@ -134,7 +134,7 @@
 
   async function learned() {
     await finish(topic.id);
-    say(t('{title} is learned. It stays on its shelf.', { title: topic.title }));
+    say(t('{title} is learned. It stays in its category.', { title: topic.title }));
   }
 
   // Delete
@@ -151,7 +151,7 @@
 <article class="tdl">
   <div class="tdl-top">
     <ShelfMark {shelf} size={30} />
-    <span class="tdl-shelf">{shelf?.name ?? t('No shelf')}</span>
+    <span class="tdl-shelf">{shelf?.name ?? t('No category')}</span>
     <button type="button" class="tdl-edit" onclick={startEdit}
       ><Glyph name="edit" size={18} />{t('Edit')}</button
     >

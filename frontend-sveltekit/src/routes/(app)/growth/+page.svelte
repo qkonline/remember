@@ -48,7 +48,7 @@
         name: s.name,
         ...(rows.get(s.id) ?? { topics: 0, remembered: null }),
       })),
-      ...(rows.has(null) ? [{ key: 'none', shelf: null, name: t('No shelf'), ...rows.get(null)! }] : []),
+      ...(rows.has(null) ? [{ key: 'none', shelf: null, name: t('No category'), ...rows.get(null)! }] : []),
     ].filter((r) => r.topics > 0);
   });
   const recent = $derived(recentlyLearned(memory.topics));
@@ -182,7 +182,7 @@
       </section>
 
       <section class="gr-box" aria-labelledby="shelf-title">
-        <h2 id="shelf-title">{t('By shelf')}</h2>
+        <h2 id="shelf-title">{t('By category')}</h2>
         {#if shelves.length}
           <ul class="gr-pots">
             {#each shelves as s (s.key)}
@@ -202,10 +202,10 @@
             {/each}
           </ul>
           <p class="gr-hint gr-hint-under">
-            {t('Each pot fills with how much of that shelf you remembered. Hazy counts.')}
+            {t('Each pot fills with how much of that category you remembered. Hazy counts.')}
           </p>
         {:else}
-          <p class="gr-hint">{t('Put topics on shelves to see each subject here.')}</p>
+          <p class="gr-hint">{t('Put topics in categories to see each subject here.')}</p>
         {/if}
 
         {#if recent.length}

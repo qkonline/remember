@@ -57,7 +57,7 @@
     '/(app)/app' | '/(app)/topics' | '/(app)/topic' | '/(app)/growth' | '/(app)/settings' | '/(app)/account';
   const tabs: { path: Tab; label: string; glyph: GlyphName; also?: Tab[] }[] = [
     { path: '/(app)/app', label: msg('Today'), glyph: 'today' },
-    { path: '/(app)/topics', label: msg('Shelves'), glyph: 'shelves', also: ['/(app)/topic'] },
+    { path: '/(app)/topics', label: msg('Categories'), glyph: 'shelves', also: ['/(app)/topic'] },
     { path: '/(app)/growth', label: msg('Growth'), glyph: 'growth' },
     { path: '/(app)/settings', label: msg('You'), glyph: 'you', also: ['/(app)/account'] },
   ];

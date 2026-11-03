@@ -20,7 +20,7 @@
 
 <div class="tp">
   <a class="tp-back" href={resolve('/(app)/topics')}
-    ><Glyph name="back" size={20} /><span>{t('Shelves')}</span></a
+    ><Glyph name="back" size={20} /><span>{t('Categories')}</span></a
   >
 
   {#if !memory.loaded}

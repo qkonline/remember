@@ -76,7 +76,7 @@
     studied === 'today' ? today : studied === 'yesterday' ? addDays(today, -1) : studiedOther,
   );
   const titleProblem = $derived(title.trim() ? null : 'Name what you studied.');
-  const shelfProblem = $derived(shelf === 'new' && !newShelf.trim() ? 'Name the new shelf.' : null);
+  const shelfProblem = $derived(shelf === 'new' && !newShelf.trim() ? 'Name the new category.' : null);
   const dateProblem = $derived(
     studied === 'other' && (!isDay(studiedOther) || studiedOther > today) ? 'Pick a day up to today.' : null,
   );

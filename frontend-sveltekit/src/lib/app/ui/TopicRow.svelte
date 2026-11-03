@@ -42,7 +42,7 @@
   <span class="tr-text">
     <span class="tr-title">{topic.title}</span>
     <span class="tr-meta"
-      >{shelf?.name ?? t('No shelf')}<Sprouts done={grown.done} total={grown.total} size={13} /></span
+      >{shelf?.name ?? t('No category')}<Sprouts done={grown.done} total={grown.total} size={13} /></span
     >
   </span>
   <span class="tr-when" class:tr-now={dueNow}>{when}</span>

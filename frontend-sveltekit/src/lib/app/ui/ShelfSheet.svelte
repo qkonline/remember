@@ -59,12 +59,12 @@
 
   const problem = $derived(
     !name.trim()
-      ? 'Name the shelf.'
+      ? 'Name the category.'
       : memory.shelves.some(
             (s) =>
               s.id !== shelf?.id && s.name.trim().toLocaleLowerCase() === name.trim().toLocaleLowerCase(),
           )
-        ? 'You already have a shelf with this name.'
+        ? 'You already have a category with this name.'
         : null,
   );
   const topics = $derived(shelf ? memory.topics.filter((x) => x.shelf === shelf.id).length : 0);
@@ -90,7 +90,7 @@
         say(t('Saved {shelf}.', { shelf: name.trim() }));
       } else {
         const id = await addShelf(name, color);
-        say(t('Made the {shelf} shelf.', { shelf: name.trim() }));
+        say(t('Made the {shelf} category.', { shelf: name.trim() }));
         oncreated?.(id);
       }
       open = false;
@@ -105,12 +105,16 @@
     await deleteShelf(shelf.id);
     confirming = false;
     open = false;
-    say(t('Removed {shelf}. Its topics are still here, on no shelf.', { shelf: was }));
+    say(t('Removed {shelf}. Its topics are still here, in no category.', { shelf: was }));
     onremoved?.();
   }
 </script>
 
-<Sheet title={shelf ? t('Edit shelf') : t('New shelf')} bind:open dismissible={!name || name === shelf?.name}>
+<Sheet
+  title={shelf ? t('Edit category') : t('New category')}
+  bind:open
+  dismissible={!name || name === shelf?.name}
+>
   <form id="{uid}-shelf" class="ss" onsubmit={save} novalidate>
     <div class="ss-preview" aria-hidden="true">
       <GrowingPot shelf={preview} leaves={Math.min(6, topics)} size={72} />
@@ -138,11 +142,11 @@
       <div class="ss-danger">
         <p>
           {topics
-            ? tn(topics, '1 topic is on this shelf.', '{count} topics are on this shelf.')
-            : t('No topics on this shelf yet.')}
+            ? tn(topics, '1 topic is in this category.', '{count} topics are in this category.')
+            : t('No topics in this category yet.')}
         </p>
         <button type="button" class="ss-remove" onclick={() => (confirming = true)}
-          >{t('Remove this shelf')}</button
+          >{t('Remove this category')}</button
         >
       </div>
     {/if}
@@ -150,17 +154,17 @@
 
   {#snippet foot()}
     <Key tone="leaf" big wide type="submit" form="{uid}-shelf" disabled={saving}
-      >{shelf ? t('Save shelf') : t('Make shelf')}</Key
+      >{shelf ? t('Save category') : t('Make category')}</Key
     >
   {/snippet}
 </Sheet>
 
 {#if shelf}
   <Modal title={t('Remove {shelf}?', { shelf: shelf.name })} bind:open={confirming}>
-    <p>{t('Its topics stay, on no shelf, with all their check-ins.')}</p>
+    <p>{t('Its topics stay, in no category, with all their check-ins.')}</p>
     {#snippet actions()}
       <Button onclick={() => (confirming = false)}>{t('Keep it')}</Button>
-      <Button variant="danger-solid" onclick={remove}>{t('Remove shelf')}</Button>
+      <Button variant="danger-solid" onclick={remove}>{t('Remove category')}</Button>
     {/snippet}
   </Modal>
 {/if}

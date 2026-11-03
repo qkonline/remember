@@ -26,12 +26,12 @@
   const uid = $props.id();
   const options = $derived([
     ...memory.shelves.map((s) => ({ value: s.id, label: s.name, shelf: s })),
-    { value: '', label: t('No shelf'), shelf: null },
+    { value: '', label: t('No category'), shelf: null },
   ]);
 </script>
 
 <fieldset class="spk">
-  <legend class="spk-legend">{t('Which shelf?')}</legend>
+  <legend class="spk-legend">{t('Which category?')}</legend>
   <div class="spk-chips">
     {#each options as o (o.value)}
       <label class="spk-chip" class:spk-on={(shelf ?? '') === o.value}>
@@ -55,12 +55,16 @@
         onchange={() => (shelf = 'new')}
       />
       <Glyph name="plus" size={16} />
-      <span>{t('New shelf')}</span>
+      <span>{t('New category')}</span>
     </label>
   </div>
   {#if shelf === 'new'}
     <div class="spk-new">
-      <Field label={t('Name of the new shelf')} invalid={!!problem} hint={problem ? t(problem) : undefined}>
+      <Field
+        label={t('Name of the new category')}
+        invalid={!!problem}
+        hint={problem ? t(problem) : undefined}
+      >
         <Input
           bind:value={newName}
           maxlength={40}

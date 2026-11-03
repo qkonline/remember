@@ -25,7 +25,7 @@
   <article class="tk-card">
     <div class="tk-top">
       <ShelfMark {shelf} size={big ? 34 : 30} />
-      <span class="tk-shelf">{shelf?.name ?? t('No shelf')}</span>
+      <span class="tk-shelf">{shelf?.name ?? t('No category')}</span>
       {#if near && topic.endOn}<span class="tk-end">{timeLeft(topic.endOn, memory.today)}</span>{/if}
     </div>
     <h2 class="tk-title">{topic.title}</h2>
