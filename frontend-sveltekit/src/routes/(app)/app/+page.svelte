@@ -64,7 +64,13 @@
     label: x.title,
     thirsty,
   });
-  const duePots = $derived(list.now.slice(0, 5).map((x) => sillPot(x, true)));
+  // The window holds as many pots as fit its width (a little over 4rem each, up to ten); past that, the
+  // last place shows "+N more".
+  let sillWidth = $state(0);
+  const room = $derived(sillWidth ? Math.min(10, Math.max(3, Math.floor((sillWidth - 24) / 68))) : 5);
+  const duePots = $derived(
+    list.now.slice(0, list.now.length <= room ? room : room - 1).map((x) => sillPot(x, true)),
+  );
   const restingPots = $derived(
     active
       .filter((x) => x.due)
@@ -157,7 +163,7 @@
         {#if !memory.loaded}
           <p class="td-sub" aria-live="polite">{t('Loading your topics…')}</p>
         {:else}
-          <div class="td-sill">
+          <div class="td-sill" bind:clientWidth={sillWidth}>
             {#if next}
               <Windowsill pots={duePots} more={Math.max(0, list.now.length - duePots.length)} />
             {:else if memory.topics.length === 0}
@@ -621,16 +627,30 @@
   .td-main {
     container: today / inline-size;
   }
+  /* With room, the words come first (the count and what's next, the key beside them) and the
+     window takes its own full-width row below, so a busy day's pots have space. */
   @container today (min-width: 46rem) {
     .td-hero {
-      grid-template-columns: minmax(0, 1fr) minmax(17rem, 24rem);
-      gap: 2rem;
-      padding: 1.5rem 1.5rem 1.5rem 2rem;
-      min-height: 17rem;
+      gap: 1.5rem;
+      padding: 1.75rem 1.75rem 1.5rem 2rem;
     }
     .td-sill {
       order: 2;
+    }
+    .td-text {
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 2rem;
+      align-items: end;
+    }
+    .td-text > :global(*) {
+      grid-column: 1;
+    }
+    .td-text > .td-start {
+      grid-column: 2;
+      grid-row: 1 / span 3;
       align-self: end;
+      width: 16rem;
+      margin-top: 0;
     }
     .td-hero-calm .td-text {
       justify-items: start;
@@ -641,9 +661,6 @@
     }
     .td-what-big {
       font-size: 1.375rem;
-    }
-    .td-start {
-      max-width: 17rem;
     }
   }
 </style>
