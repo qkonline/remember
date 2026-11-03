@@ -25,7 +25,11 @@
     | 'wave'
     | 'down'
     | 'edit'
-    | 'message';
+    | 'message'
+    | 'bold'
+    | 'italic'
+    | 'bullets'
+    | 'numbers';
 
   let { name, size = 22 }: { name: GlyphName; size?: number } = $props();
 </script>
@@ -63,6 +67,26 @@
     <path d="M13.5 4.5L7 11l6.5 6.5" class="gl-ink gl-none" />
   {:else if name === 'down'}
     <path d="M6 8.5l5 5 5-5" class="gl-ink gl-none" />
+  {:else if name === 'bold'}
+    <path
+      d="M7 4.5h4.8a3.2 3.2 0 010 6.4H7zM7 10.9h5.6a3.3 3.3 0 010 6.6H7z"
+      class="gl-ink gl-none"
+      stroke-linejoin="round"
+    />
+  {:else if name === 'italic'}
+    <path d="M10 4.5h6.5M5.5 17.5H12M13.25 4.5l-4.5 13" class="gl-ink" />
+  {:else if name === 'bullets'}
+    <circle cx="5" cy="6" r="1.4" class="gl-solid" /><circle cx="5" cy="11" r="1.4" class="gl-solid" /><circle
+      cx="5"
+      cy="16"
+      r="1.4"
+      class="gl-solid"
+    /><path d="M9 6h9M9 11h9M9 16h9" class="gl-ink" />
+  {:else if name === 'numbers'}
+    <path
+      d="M4.2 4.6l1.5-.8v4.6M3.8 13.4a1.4 1.4 0 012.6.7c0 1-2.6 1.9-2.6 3.2h2.8"
+      class="gl-ink gl-none gl-thin"
+    /><path d="M10 6h8M10 11h8M10 16h8" class="gl-ink" />
   {:else if name === 'search'}
     <circle cx="9.5" cy="9.5" r="5.5" class="gl-ink gl-none" /><path d="M14 14l4.5 4.5" class="gl-ink" />
   {:else if name === 'link'}
@@ -156,6 +180,9 @@
   }
   .gl-ink.gl-thick {
     stroke-width: 2.2;
+  }
+  .gl-ink.gl-thin {
+    stroke-width: 1.5;
   }
   .gl-solid {
     fill: currentColor;

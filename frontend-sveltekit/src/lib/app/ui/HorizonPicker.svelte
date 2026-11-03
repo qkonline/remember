@@ -104,29 +104,38 @@
   .hz-legend {
     font-weight: 500;
     font-size: 0.9375rem;
-    margin-bottom: 0.625rem;
+    margin-bottom: 0.5rem;
     color: var(--color-heading);
   }
+  /* A tray of tabs with rounded corners, in an even grid (two rows of four on most screens);
+     the one picked is raised. */
   .hz-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(5.75rem, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--color-base-300);
+    border-radius: 16px;
+    background: var(--color-base-200);
   }
   .hz-chip {
     position: relative;
-    display: inline-flex;
-    align-items: center;
+    display: grid;
+    place-items: center;
     min-height: 2.75rem;
-    padding: 0 0.875rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 999px;
-    background: var(--color-base-100);
+    padding: 0 0.5rem;
+    border: 1px solid transparent;
+    border-radius: 12px;
     font-size: 0.9375rem;
+    text-align: center;
     cursor: pointer;
     user-select: none;
     transition:
       background-color 120ms ease,
       border-color 120ms ease;
+  }
+  .hz-chip:hover {
+    background: color-mix(in oklab, var(--color-base-100) 60%, transparent);
   }
   .hz-chip input {
     position: absolute;
@@ -137,15 +146,18 @@
   }
   .hz-chip:has(input:focus-visible) {
     outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline-offset: 1px;
   }
-  .hz-on {
-    border: 1.5px solid var(--color-leaf-line);
-    background: var(--color-leaf-tint);
+  .hz-on,
+  .hz-on:hover {
+    border-color: var(--color-leaf-line);
+    background: var(--color-base-100);
+    box-shadow: 0 1px 2px light-dark(rgb(23 61 15 / 0.12), rgb(0 0 0 / 0.4));
     color: var(--color-leaf-deep);
+    font-weight: 500;
   }
   .hz-more {
-    margin-top: 1rem;
+    margin-top: 0.75rem;
   }
   .hz-custom {
     display: grid;

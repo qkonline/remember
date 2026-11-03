@@ -30,8 +30,10 @@ test('plant in categories, refresh one card at a time, undo, and find it in its 
   // Studied today, in a new category: it comes back tomorrow, so today stays clear.
   let sheet = await openAdd(page);
   await sheet.getByLabel('What did you study?').fill('Krebs cycle');
-  await sheet.getByRole('radio', { name: 'New category' }).check();
+  await sheet.getByRole('button', { name: 'New category' }).click();
   await sheet.getByLabel('Name of the new category').fill('Biology');
+  await sheet.getByRole('button', { name: 'Make “Biology”' }).click();
+  await expect(sheet.getByRole('radio', { name: /Biology/ })).toBeChecked();
   await expect(sheet.getByText(/It comes back \d+ times/)).toBeVisible();
   await sheet.getByRole('button', { name: 'Plant it' }).click();
   await expect(page.getByRole('status').filter({ hasText: /First check-in tomorrow/ })).toBeVisible();
@@ -42,8 +44,7 @@ test('plant in categories, refresh one card at a time, undo, and find it in its 
   await sheet.getByLabel('What did you study?').fill('Photosynthesis');
   await expect(sheet.getByRole('radio', { name: 'Biology' })).toBeChecked();
   await sheet.getByRole('radio', { name: '1 month' }).check();
-  await sheet.getByRole('button', { name: 'Notes, a link or the day you studied' }).click();
-  await sheet.getByLabel('Notes').fill('Light reactions, then the Calvin cycle.');
+  await sheet.getByLabel('Notes', { exact: true }).fill('Light reactions, then the **Calvin cycle**.');
   await sheet.getByRole('radio', { name: 'Earlier' }).check();
   await sheet.getByRole('button', { name: 'Plant it' }).click();
   await expect(page.getByText('card to refresh')).toBeVisible();
@@ -53,9 +54,10 @@ test('plant in categories, refresh one card at a time, undo, and find it in its 
   await page.getByRole('button', { name: 'Start refreshing' }).click();
   await expect(page).toHaveURL(/\/review$/);
   await expect(page.getByText('What do you remember about it?')).toBeVisible();
-  await expect(page.getByText('Light reactions, then the Calvin cycle.')).toBeHidden();
+  await expect(page.getByText('Light reactions, then the')).toBeHidden();
   await page.getByRole('button', { name: 'Show my notes' }).click();
-  await expect(page.getByText('Light reactions, then the Calvin cycle.')).toBeVisible();
+  await expect(page.getByText('Light reactions, then the')).toBeVisible();
+  await expect(page.locator('strong', { hasText: 'Calvin cycle' })).toBeVisible();
   await page.keyboard.press('1');
   await expect(page.getByText(/Have another look now/)).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();

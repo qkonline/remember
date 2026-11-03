@@ -1,8 +1,9 @@
 <!--
-  One topic in full: its shelf, title, notes and link; how long it is kept (with Change); how it
+  One topic in full: its category, title, notes (formatted; an older topic's separate link shows
+  below them until the topic is next edited, when it moves into the notes); how long it is kept (with Change); how it
   has grown, check-in by check-in, and what comes next; and what can be done with it (check
   yourself now, edit, mark as learned, delete). The topic page shows it; on a computer the
-  Shelves page shows it beside the list.
+  Categories page shows it beside the list.
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';
@@ -10,8 +11,9 @@
   import { t } from '#lib/i18n/index.svelte.ts';
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
-  import Textarea from '#lib/components/ui/Textarea.svelte';
   import Modal from '#lib/components/ui/Modal.svelte';
+  import NotesEditor from './NotesEditor.svelte';
+  import NotesText from './NotesText.svelte';
   import Button from '#lib/components/ui/Button.svelte';
   import {
     addShelf,
@@ -90,20 +92,19 @@
   let editing = $state(false);
   let title = $state('');
   let notes = $state('');
-  let link = $state('');
   let shelfPick = $state<string | null>(null);
   let newShelf = $state('');
   let tried = $state(false);
   const titleProblem = $derived(title.trim() ? null : 'Name what you studied.');
-  const shelfProblem = $derived(shelfPick === 'new' && !newShelf.trim() ? 'Name the new shelf.' : null);
-  const linkProblem = $derived(
-    link.trim() && !/^https?:\/\/\S+$/i.test(link.trim()) ? 'Start the link with https://.' : null,
-  );
+  const shelfProblem = $derived(shelfPick === 'new' && !newShelf.trim() ? 'Name the new category.' : null);
 
   function startEdit() {
     title = topic.title;
-    notes = topic.notes;
-    link = topic.link;
+    // A link from before notes took links moves into them, so it stays editable.
+    notes =
+      topic.link && !topic.notes.includes(topic.link)
+        ? [topic.notes.trimEnd(), topic.link].filter(Boolean).join('\n\n')
+        : topic.notes;
     shelfPick = topic.shelf;
     newShelf = '';
     tried = false;
@@ -112,9 +113,9 @@
   async function saveEdit(e: SubmitEvent) {
     e.preventDefault();
     tried = true;
-    if (titleProblem || linkProblem || shelfProblem) return;
+    if (titleProblem || shelfProblem) return;
     const shelfId = shelfPick === 'new' ? await addShelf(newShelf) : shelfPick;
-    await editTopic(topic.id, { title: title.trim(), notes, link: link.trim(), shelf: shelfId });
+    await editTopic(topic.id, { title: title.trim(), notes, link: '', shelf: shelfId });
     editing = false;
   }
 
@@ -158,7 +159,7 @@
   </div>
 
   <h1 class="tdl-title">{topic.title}</h1>
-  {#if topic.notes.trim()}<p class="tdl-notes">{topic.notes}</p>{/if}
+  {#if topic.notes.trim()}<div class="tdl-notes"><NotesText text={topic.notes} /></div>{/if}
   {#if topic.link}
     <a class="tdl-link" href={topic.link} target="_blank" rel="noopener noreferrer"
       ><Glyph name="link" size={16} /><span>{topic.link.replace(/^https?:\/\//i, '')}</span></a
@@ -224,16 +225,7 @@
       <Input bind:value={title} maxlength={200} autocomplete="off" />
     </Field>
     <ShelfPicker bind:shelf={shelfPick} bind:newName={newShelf} problem={tried ? shelfProblem : null} />
-    <Field label={t('Notes')}>
-      <Textarea bind:value={notes} rows={5} maxlength={20000} />
-    </Field>
-    <Field
-      label={t('Link')}
-      invalid={tried && !!linkProblem}
-      hint={tried && linkProblem ? t(linkProblem) : undefined}
-    >
-      <Input type="url" inputmode="url" bind:value={link} placeholder="https://" maxlength={2000} />
-    </Field>
+    <NotesEditor bind:value={notes} rows={7} />
   </form>
   {#snippet foot()}
     <Key tone="leaf" big wide type="submit" form="edit-topic-{topic.id}">{t('Save changes')}</Key>
@@ -317,9 +309,6 @@
   }
   .tdl-notes {
     margin: 0.625rem 0 0;
-    white-space: pre-wrap;
-    line-height: 1.55;
-    max-width: 65ch;
   }
   .tdl-link {
     display: inline-flex;

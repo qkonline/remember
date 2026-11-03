@@ -16,6 +16,7 @@
   import { whenNext } from '#lib/app/dates.ts';
   import { currentRun } from '#lib/app/growth.ts';
   import Glyph from '#lib/app/ui/Glyph.svelte';
+  import NotesText from '#lib/app/ui/NotesText.svelte';
   import Key from '#lib/app/ui/Key.svelte';
   import TopicCard from '#lib/app/ui/TopicCard.svelte';
   import { say } from '#lib/app/ui.svelte.ts';
@@ -210,7 +211,7 @@
                 <p class="rv-notes-head">
                   {t('Your notes')}<span class="rv-hint">{t('Space to hide')}</span>
                 </p>
-                {#if topic.notes.trim()}<p class="rv-text">{topic.notes}</p>{/if}
+                {#if topic.notes.trim()}<div class="rv-text"><NotesText text={topic.notes} /></div>{/if}
                 {#if topic.link}
                   <a class="rv-link" href={topic.link} target="_blank" rel="noopener noreferrer"
                     ><Glyph name="link" size={16} />{t('Open your link')}</a
@@ -377,9 +378,6 @@
   }
   .rv-text {
     margin: 0;
-    white-space: pre-wrap;
-    line-height: 1.55;
-    max-width: 65ch;
   }
   .rv-link {
     display: inline-flex;
