@@ -1,11 +1,15 @@
 <!--
   Refreshing, one card at a time and nothing else on screen: the topic and a prompt to recall it
-  first, the notes only when asked, then one honest tap (Forgot, Hazy, Got it; keys 1, 2, 3).
-  Forgot opens the notes to look again before the next card. The last card leads to "All caught
+  first, the notes only when asked, then one honest tap (Forgot, Hazy, Remembered; keys 1, 2, 3).
+  Forgot opens the notes to look again before the next card. Each answer moves the card the way
+  it goes: Remembered lifts it, with a burst of leaves, up into the progress bar; Hazy blurs it
+  and tucks it back into the deck (it comes back a little sooner); Forgot shakes its head, then
+  sinks to the bottom of the deck. The next card rises from the deck. With reduced motion, only
+  quick fades and the colour flush remain. The last card leads to "All caught
   up". `?id=…` checks one topic now (from its page); otherwise today's list, as it was on opening.
 -->
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import { page } from '$app/state';
@@ -72,6 +76,163 @@
     restudy = null;
   }
 
+  // The card's motion (Web Animations on the card itself; the deck behind it stays).
+  let stage = $state<HTMLElement>();
+  let progress = $state<HTMLElement>();
+  let burst = $state(0);
+  let held: Animation | null = null;
+  type Frames = Parameters<HTMLElement['animate']>[0];
+  const OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  const IN = 'cubic-bezier(0.55, 0, 0.75, 0.2)';
+  const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const theCard = () => stage?.querySelector<HTMLElement>('.tk-card') ?? null;
+  const FLUSH = '0 0 0 3px light-dark(rgb(225 29 72 / 0.3), rgb(253 164 175 / 0.35))';
+
+  async function move(frames: Frames, ms: number, easing = OUT, keep = false) {
+    const el = theCard();
+    if (!el) return;
+    const a = el.animate(frames, { duration: ms, easing, fill: keep ? 'forwards' : 'none' });
+    if (keep) held = a;
+    await a.finished.catch(() => {});
+  }
+
+  /** The card leaves the way its answer sends it; it stays hidden until the next one rises. */
+  async function leave(how: RatingName | 'sink') {
+    const el = theCard();
+    if (!el) return;
+    if (calm()) return move([{ opacity: 1 }, { opacity: 0 }], 160, 'linear', true);
+    if (how === 'got') {
+      burst += 1;
+      const from = el.getBoundingClientRect();
+      const to = progress?.children[index]?.getBoundingClientRect();
+      const dx = to ? to.left + to.width / 2 - (from.left + from.width / 2) : 0;
+      const dy = to ? to.top + to.height / 2 - (from.top + from.height / 2) : -from.bottom;
+      return move(
+        [
+          { transform: 'none', opacity: 1, easing: OUT },
+          {
+            transform: 'translateY(-18px) scale(1.035) rotate(-1.5deg)',
+            opacity: 1,
+            offset: 0.28,
+            easing: IN,
+          },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.05) rotate(-10deg)`, opacity: 0.15 },
+        ],
+        760,
+        'linear',
+        true,
+      );
+    }
+    if (how === 'hazy') {
+      // Soft, aside, and back into the deck: it returns a little sooner.
+      return move(
+        [
+          { transform: 'none', filter: 'blur(0)', opacity: 1, zIndex: 1, easing: OUT },
+          {
+            transform: 'translateX(-6px) rotate(-0.8deg)',
+            filter: 'blur(1.6px)',
+            opacity: 1,
+            zIndex: 1,
+            offset: 0.18,
+            easing: 'ease-in-out',
+          },
+          {
+            transform: 'translate(22%, -6px) rotate(6deg) scale(0.96)',
+            filter: 'blur(1px)',
+            opacity: 1,
+            zIndex: 1,
+            offset: 0.5,
+            easing: 'steps(1, end)',
+          },
+          {
+            transform: 'translate(22%, -6px) rotate(6deg) scale(0.96)',
+            filter: 'blur(1px)',
+            zIndex: -1,
+            offset: 0.52,
+            easing: IN,
+          },
+          {
+            transform: 'translate(2%, 10px) rotate(2.5deg) scale(0.9)',
+            filter: 'blur(2px)',
+            opacity: 0,
+            zIndex: -1,
+          },
+        ],
+        720,
+        'linear',
+        true,
+      );
+    }
+    // Forgot (after the notes, or with none): it sinks to the bottom of the deck.
+    return move(
+      [
+        { transform: 'none', opacity: 1, zIndex: 1 },
+        { transform: 'translateY(10px) rotate(-1.5deg) scale(0.98)', opacity: 1, zIndex: -1, offset: 0.3 },
+        { transform: 'translateY(40px) rotate(-4deg) scale(0.9)', opacity: 0, zIndex: -1 },
+      ],
+      480,
+      IN,
+      true,
+    );
+  }
+
+  /** Forgot: a small shake of the head, and a rose flush on the card. */
+  function shake() {
+    if (calm()) return move([{ boxShadow: FLUSH }, { boxShadow: 'var(--shadow-pop)' }], 600, 'linear');
+    return move(
+      [
+        { transform: 'none', boxShadow: 'var(--shadow-pop)' },
+        { transform: 'translateX(-11px) rotate(-0.6deg)', boxShadow: FLUSH, offset: 0.15 },
+        { transform: 'translateX(9px) rotate(0.5deg)', offset: 0.35 },
+        { transform: 'translateX(-6px)', offset: 0.55 },
+        { transform: 'translateX(3px)', boxShadow: FLUSH, offset: 0.75 },
+        { transform: 'none', boxShadow: 'var(--shadow-pop)' },
+      ],
+      460,
+      'ease-out',
+    );
+  }
+
+  /** The next card rises from the deck. */
+  async function arrive() {
+    await tick();
+    held?.cancel();
+    held = null;
+    if (calm()) return move([{ opacity: 0 }, { opacity: 1 }], 180, 'linear');
+    return move(
+      [
+        { transform: 'translateY(16px) scale(0.96)', opacity: 0 },
+        { transform: 'none', opacity: 1 },
+      ],
+      380,
+    );
+  }
+
+  async function nextCard() {
+    if (busy) return;
+    busy = true;
+    try {
+      await leave('sink');
+      advance();
+      await arrive();
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Leaves for Remembered: eight, flung out from the card's middle.
+  const LEAVES = Array.from({ length: 8 }, (_v, i) => {
+    const a = (i / 8) * Math.PI * 2 - Math.PI / 2 + (i % 2 ? 0.2 : -0.1);
+    const r = 120 + (i % 3) * 28;
+    return {
+      dx: Math.cos(a) * r,
+      dy: Math.sin(a) * r * 0.8,
+      turn: (i % 2 ? 1 : -1) * (90 + i * 25),
+      delay: (i % 4) * 25,
+      b: i % 2 === 1,
+    };
+  });
+
   async function rate(rating: RatingName) {
     if (!topic || busy || restudy) return;
     busy = true;
@@ -88,10 +249,16 @@
             : t('That was the last check-in.'),
         () => void undo(),
       );
+      if (rating === 'forgot') await shake();
       if (rating === 'forgot' && hasNotes) {
         restudy = r;
         reveal = true;
-      } else advance();
+      } else {
+        await leave(rating);
+        // Undone while it moved: the same card stays.
+        if (results.some((x) => x.result.checkinId === r.checkinId)) advance();
+        await arrive();
+      }
     } finally {
       busy = false;
     }
@@ -119,7 +286,7 @@
       if (done) return;
       if (restudy && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
-        advance();
+        void nextCard();
       } else if (e.key === '1') void rate('forgot');
       else if (e.key === '2') void rate('hazy');
       else if (e.key === '3') void rate('got');
@@ -154,7 +321,7 @@
         <p class="rv-sub">
           {tn(results.length, '1 refreshed', '{count} refreshed')}:
           {[
-            counts.got ? tn(counts.got, '1 got it', '{count} got it') : '',
+            counts.got ? tn(counts.got, '1 remembered', '{count} remembered') : '',
             counts.hazy ? tn(counts.hazy, '1 hazy', '{count} hazy') : '',
             counts.forgot ? tn(counts.forgot, '1 forgot', '{count} forgot') : '',
           ]
@@ -182,7 +349,12 @@
       <button type="button" class="rv-stop" onclick={stop}
         ><Glyph name="close" size={18} /><span>{t('Stop for now')}</span></button
       >
-      <div class="rv-progress" role="img" aria-label={t('Card {n} of {total}', { n: index + 1, total })}>
+      <div
+        class="rv-progress"
+        bind:this={progress}
+        role="img"
+        aria-label={t('Card {n} of {total}', { n: index + 1, total })}
+      >
         {#each Array.from({ length: total }, (_v, i) => i) as i (i)}<span class:rv-on={i <= index}
           ></span>{/each}
       </div>
@@ -194,7 +366,30 @@
     </header>
 
     {#if topic}
-      <div class="rv-stage">
+      <div class="rv-stage" bind:this={stage}>
+        {#key burst}
+          {#if burst}
+            <div class="rv-burst" aria-hidden="true">
+              {#each LEAVES as l, i (i)}
+                <svg
+                  class="rv-fly"
+                  class:rv-fly-b={l.b}
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                  style:--dx="{l.dx}px"
+                  style:--dy="{l.dy}px"
+                  style:--turn="{l.turn}deg"
+                  style:animation-delay="{l.delay}ms"
+                  ><path d="M2 16C2 7 7 2 16 2c0 9-5 14-14 14z" /><path
+                    d="M3 15L13 5"
+                    class="rv-fly-vein"
+                  /></svg
+                >
+              {/each}
+            </div>
+          {/if}
+        {/key}
         <TopicCard {topic} big>
           {#if restudy}
             <p class="rv-prompt">
@@ -229,7 +424,9 @@
 
       <div class="rv-keys">
         {#if restudy}
-          <Key tone="leaf" big wide onclick={advance}>{index + 1 < total ? t('Next card') : t('Finish')}</Key>
+          <Key tone="leaf" big wide onclick={nextCard} disabled={busy}
+            >{index + 1 < total ? t('Next card') : t('Finish')}</Key
+          >
         {:else}
           <p class="rv-ask" id="ask">{t('How did it go?')}</p>
           <div class="rv-rate" role="group" aria-labelledby="ask">
@@ -240,7 +437,7 @@
               ><Glyph name="wave" size={18} />{t('Hazy')}<kbd>2</kbd></Key
             >
             <Key tone="leaf" big onclick={() => rate('got')} disabled={busy}
-              ><Glyph name="check" size={18} />{t('Got it')}<kbd>3</kbd></Key
+              ><Glyph name="check" size={18} />{t('Remembered')}<kbd>3</kbd></Key
             >
           </div>
           <p class="rv-note">{t('Hazy still counts. It just comes back a little sooner.')}</p>
@@ -320,17 +517,71 @@
     display: none;
   }
   .rv-stage {
+    position: relative;
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     margin: 1.5rem 0 1rem;
   }
+  /* The card can tuck behind the deck (z-index below its backs) without leaving the stage. */
+  .rv-stage :global(.tk) {
+    isolation: isolate;
+  }
+  .rv-stage :global(.tk-card) {
+    will-change: transform;
+  }
   .rv-stage :global(.tk-card) {
     min-height: min(26rem, 52dvh);
   }
   .rv-stage :global(.tk-title) {
     margin-top: 2.5rem;
+  }
+  .rv-burst {
+    position: absolute;
+    left: 50%;
+    top: 45%;
+    z-index: 5;
+    pointer-events: none;
+  }
+  .rv-fly {
+    position: absolute;
+    left: -9px;
+    top: -9px;
+    opacity: 0;
+    animation: rv-fly 820ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .rv-fly path {
+    fill: var(--color-leaf-soft);
+    stroke: var(--color-leaf-line);
+    stroke-width: 1.2;
+    stroke-linejoin: round;
+  }
+  .rv-fly-b path {
+    fill: var(--color-leaf-bright);
+  }
+  .rv-fly .rv-fly-vein {
+    fill: none;
+    stroke-width: 0.9;
+    stroke-linecap: round;
+  }
+  @keyframes rv-fly {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0) scale(0.3) rotate(0);
+    }
+    65% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(var(--turn));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rv-burst {
+      display: none;
+    }
   }
   .rv-prompt {
     margin: 0;

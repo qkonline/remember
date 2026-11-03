@@ -62,8 +62,10 @@ test('plant in categories, refresh one card at a time, undo, and find it in its 
   await expect(page.getByText(/Have another look now/)).toBeVisible();
   await page.getByRole('button', { name: 'Undo' }).click();
   await expect(page.getByText('What do you remember about it?')).toBeVisible();
-  await page.getByRole('button', { name: /Got it/ }).click();
-  await expect(page.getByRole('region', { name: 'All caught up' })).toContainText('1 refreshed: 1 got it.');
+  await page.getByRole('button', { name: /Remembered/ }).click();
+  await expect(page.getByRole('region', { name: 'All caught up' })).toContainText(
+    '1 refreshed: 1 remembered.',
+  );
   await page.getByRole('button', { name: 'Back to Today' }).click();
   await expect(page).toHaveURL(/\/app$/);
 
@@ -74,7 +76,7 @@ test('plant in categories, refresh one card at a time, undo, and find it in its 
   await expect(page.getByRole('link', { name: /Krebs cycle/ })).toBeVisible();
   await page.goto(`/topic?id=${await topicId(page, 'Photosynthesis')}`);
   await expect(page.getByRole('heading', { name: 'Photosynthesis', level: 1 })).toBeVisible();
-  await expect(page.getByText('Got it', { exact: true })).toBeVisible();
+  await expect(page.getByText('Remembered', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Delete', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Delete topic' }).click();
   await expect(page).toHaveURL(/\/topics$/);

@@ -61,7 +61,7 @@ export function calendar(
 export const level = (count: number): number =>
   count <= 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
 
-/** The share of check-ins recalled (Got it or Hazy: both count), 0 to 1, or null with none. */
+/** The share of check-ins recalled (Remembered or Hazy: both count), 0 to 1, or null with none. */
 export function remembered(checkins: readonly GrowthCheckIn[]): number | null {
   if (!checkins.length) return null;
   return checkins.filter((c) => c.rating !== 'forgot').length / checkins.length;

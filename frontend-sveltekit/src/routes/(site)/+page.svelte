@@ -26,7 +26,7 @@
     },
     {
       title: 'Check yourself for a few minutes a day',
-      text: 'Each day Remember shows the few topics you’re about to forget. Try to recall each one, then tap Forgot, Hazy or Got it.',
+      text: 'Each day Remember shows the few topics you’re about to forget. Try to recall each one, then tap Forgot, Hazy or Remembered.',
     },
     {
       title: 'Keep it for as long as you need',

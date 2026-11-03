@@ -45,7 +45,7 @@
   const grown = $derived(growthOf(topic));
   const length = $derived(horizonLabel(topic.horizon));
 
-  const ratingLabel: Record<RatingName, string> = { forgot: 'Forgot', hazy: 'Hazy', got: 'Got it' };
+  const ratingLabel: Record<RatingName, string> = { forgot: 'Forgot', hazy: 'Hazy', got: 'Remembered' };
 
   type Step = {
     key: string;
