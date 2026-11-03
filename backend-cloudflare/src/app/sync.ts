@@ -101,11 +101,11 @@ const settingsChecks: Record<string, (v: unknown) => string | null> = {
   retention: (v) => (typeof v === 'number' && RETENTIONS.has(v) ? null : 'Choose Relaxed, Balanced or Intense.'),
 };
 
-// `onlyListed` is false for now: other tables stay in the person's own space and Remember never
-// reads them. Since template 0.3.1 it could be true (a local backend still takes the contract
-// suite's `test_…` tables); whether to turn it on is still to be decided.
+// `onlyListed`: only these four tables are kept; a change to any other is refused
+// (`invalid_input`, "Update the app"), so a new table needs its entry here before it ships. A
+// local backend still takes the contract suite's `test_…` tables (template 0.3.1).
 export const syncRules: SyncRules = {
-  onlyListed: false,
+  onlyListed: true,
   // Due days and the reminder time, copied to D1 for the daily reminder (reminders.ts).
   afterApply: (env, space, applied) => copyForReminders(env, space, applied),
   tables: {
