@@ -84,7 +84,7 @@ export class TokenQueue {
   }
 
   /** A fresh token, used once. */
-  take(timeoutMs = 60_000): Promise<string> {
+  take(timeoutMs = 15_000): Promise<string> {
     if (this.current) {
       const token = this.current;
       this.current = null;
@@ -110,6 +110,8 @@ export class TokenQueue {
       };
       const timer = setTimeout(() => {
         this.waiting = this.waiting.filter((w) => w !== entry);
+        // A stuck widget never answers, so trying again needs a fresh one.
+        this.reset();
         reject(new Error(t('The security check is taking too long. Try again.')));
       }, timeoutMs);
       this.waiting.push(entry);

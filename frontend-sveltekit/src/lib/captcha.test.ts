@@ -45,4 +45,20 @@ describe('CAPTCHA tokens', () => {
     await expect(waiting).rejects.toThrow(/too long/);
     vi.useRealTimers();
   });
+
+  it('resets a stuck widget on giving up, so trying again can work', async () => {
+    vi.useFakeTimers();
+    const reset = vi.fn();
+    const q = new TokenQueue(reset);
+    const waiting = q.take();
+    vi.advanceTimersByTime(14_999);
+    expect(reset).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(2);
+    await expect(waiting).rejects.toThrow(/too long/);
+    expect(reset).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+    const retry = q.take(1000);
+    q.give('fresh');
+    await expect(retry).resolves.toBe('fresh');
+  });
 });
