@@ -89,9 +89,9 @@
     font-size: 1.0625rem;
   }
   .rk-leaf {
-    --rk-face: var(--color-leaf);
+    --rk-face: var(--color-leaf-key);
     --rk-ink: var(--color-leaf-ink);
-    --rk-line: var(--color-leaf);
+    --rk-line: var(--color-leaf-key);
     --rk-edge: var(--color-leaf-edge);
     box-shadow: 0 4px 0 var(--rk-edge);
   }

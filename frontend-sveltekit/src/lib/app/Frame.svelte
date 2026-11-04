@@ -391,7 +391,7 @@
     height: 3.75rem;
     border: 0;
     border-radius: 16px;
-    background: var(--color-leaf);
+    background: var(--color-leaf-key);
     color: var(--color-leaf-ink);
     display: grid;
     place-items: center;

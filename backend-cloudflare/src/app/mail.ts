@@ -13,6 +13,7 @@ const C = {
   text: "#172119",
   muted: "#4f5c53",
   leaf: "#94d873",
+  key: "#cbffb2",
   leafInk: "#173d0f",
   leafEdge: "#5aa143",
   tint: "#e6f6dc",
@@ -43,7 +44,7 @@ export function codeBoxes(code: string): string {
 /** Remember's raised green key, as a link. */
 export function button(href: string, label: string): string {
   return (
-    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 20px"><tr><td style="border-radius:14px;background:${C.leaf};box-shadow:0 3px 0 ${C.leafEdge}">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 20px"><tr><td style="border-radius:14px;background:${C.key};box-shadow:0 3px 0 ${C.leafEdge}">` +
     `<a href="${esc(href)}" style="display:inline-block;padding:14px 22px;font-family:${FONT};font-size:16px;font-weight:600;color:${C.leafInk};text-decoration:none;border-radius:14px">${esc(label)}</a>` +
     `</td></tr></table>`
   );

@@ -48,7 +48,7 @@
     /* Roles, each with the colour of text on it. Primary is the deep green that white text
        passes AA on (5.3:1), for the core's buttons, focus rings and links; Remember's own keys
        use the light leaf green below with dark text. */
-    --color-primary: light-dark(#2f7a22, #94d873);
+    --color-primary: light-dark(#2f7a22, #cbffb2);
     --color-primary-content: light-dark(#ffffff, #10200b);
     --color-secondary: light-dark(#4f5c53, #a3b0a5);
     --color-secondary-content: light-dark(#ffffff, #0e120e);
@@ -88,6 +88,7 @@
       0 2px 4px light-dark(rgb(23 33 25 / 0.06), rgb(0 0 0 / 0.3));
     /* The leaf greens of Remember's keys, lines and tints */
     --color-leaf: light-dark(#94d873, #94d873);
+    --color-leaf-key: #cbffb2;
     --color-leaf-ink: light-dark(#173d0f, #10200b);
     --color-leaf-edge: light-dark(#5aa143, #4f8a3a);
     --color-leaf-line: light-dark(#3d8a2c, #8fd46c);
