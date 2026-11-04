@@ -58,6 +58,13 @@ export function todayList<T extends DueTopic>(
   return { now: due.slice(0, n), later: due.slice(n) };
 }
 
+/**
+ * Whether a topic has reached its end: the end date has passed and no review is still waiting.
+ * A topic someone missed gets its last review first, so it is never due and finished at once.
+ */
+export const hasEnded = (topic: Pick<DueTopic, 'due' | 'endOn'>, today: Day): boolean =>
+  topic.endOn !== null && topic.endOn < today && !(topic.due !== null && topic.due <= today);
+
 /** Whole minutes the list takes, at least 1. */
 export const minutesFor = (count: number): number =>
   Math.max(1, Math.round((count * SECONDS_PER_CHECKIN) / 60));

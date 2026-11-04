@@ -67,6 +67,10 @@ export function remembered(checkins: readonly GrowthCheckIn[]): number | null {
   return checkins.filter((c) => c.rating !== 'forgot').length / checkins.length;
 }
 
+/** How many check-ins were fully remembered (Hazy is not), for "You remembered 2 of 3". */
+export const rememberedCount = (checkins: readonly GrowthCheckIn[]): number =>
+  checkins.filter((c) => c.rating === 'got').length;
+
 /** Check-ins from `from` (inclusive) on; all of them when `from` is null. */
 export const since = <T extends GrowthCheckIn>(checkins: readonly T[], from: Day | null): T[] =>
   from === null ? [...checkins] : checkins.filter((c) => c.day >= from);

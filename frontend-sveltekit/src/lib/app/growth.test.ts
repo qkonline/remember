@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { byShelf, calendar, currentRun, level, longestRun, recentlyLearned, remembered } from './growth.ts';
+import { byShelf, calendar, currentRun, level, longestRun, recentlyLearned, remembered, rememberedCount } from './growth.ts';
 import type { GrowthCheckIn, GrowthTopic } from './growth.ts';
 
 const c = (day: string, rating: GrowthCheckIn['rating'] = 'got', topic = 'a'): GrowthCheckIn => ({
@@ -60,4 +60,14 @@ describe('growth', () => {
     expect(rows.get(null)).toEqual({ topics: 1, remembered: null });
     expect(recentlyLearned(topics).map((t) => t.id)).toEqual(['c', 'b']);
   });
+});
+
+test('rememberedCount leaves out Hazy and Forgot', () => {
+  const day = '2026-11-03';
+  const all: GrowthCheckIn[] = [
+    { topic: 'a', rating: 'got', day },
+    { topic: 'b', rating: 'hazy', day },
+    { topic: 'c', rating: 'forgot', day },
+  ];
+  expect(rememberedCount(all)).toBe(1);
 });

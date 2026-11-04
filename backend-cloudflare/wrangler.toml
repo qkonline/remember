@@ -62,7 +62,7 @@ ADMIN_EMAILS = ""
 VAPID_PUBLIC_KEY = "BD3Rv4EbGLdMNVcz9pEwHi64LQ_ewVLXc9_JmXJqc9hjPkqWH2K46LMTZ_KfU2r_4FQAh5_SRk3NK8Us0qUN9mU"
 VAPID_SUBJECT = "https://remember.kaiserkhan.com/"
 # Contact messages are also emailed here when set (each one an email from the quota).
-CONTACT_EMAIL = ""
+CONTACT_EMAIL = "kaiser@kaiserkhan.com"
 # DEV_MAIL (mail kept at /api/dev/mail, per-network limits off) is never set here, so a deploy
 # can't carry it: `npm run dev` and `npm run dev:all` pass it with --var.
 

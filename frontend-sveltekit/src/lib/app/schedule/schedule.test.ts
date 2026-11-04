@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  hasEnded,
   addDays,
   addMonths,
   backFromBreak,
@@ -232,5 +233,14 @@ describe('today', () => {
     expect(backFromBreak('2026-11-01', '2026-11-10')).toBe(true);
     expect(backFromBreak('2026-11-08', '2026-11-10')).toBe(false);
     expect(backFromBreak(null, '2026-11-10')).toBe(false);
+  });
+});
+
+describe('hasEnded', () => {
+  it('waits for the last review of a topic past its end date', () => {
+    expect(hasEnded({ endOn: '2026-10-28', due: '2026-11-03' }, '2026-11-03')).toBe(false);
+    expect(hasEnded({ endOn: '2026-10-28', due: null }, '2026-11-03')).toBe(true);
+    expect(hasEnded({ endOn: '2026-11-03', due: null }, '2026-11-03')).toBe(false);
+    expect(hasEnded({ endOn: null, due: null }, '2026-11-03')).toBe(false);
   });
 });

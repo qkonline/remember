@@ -34,14 +34,14 @@
   }
   .lv-leaf {
     fill: currentColor;
-    fill-opacity: 0.13;
+    fill-opacity: 0.065;
     stroke: currentColor;
-    stroke-opacity: 0.21;
+    stroke-opacity: 0.1;
     stroke-width: 1.2;
   }
   .lv-rib {
     stroke: currentColor;
-    stroke-opacity: 0.21;
+    stroke-opacity: 0.1;
     stroke-width: 1.2;
   }
 </style>

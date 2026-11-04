@@ -10,6 +10,7 @@ import {
   endOn as endOfHorizon,
   nowIso,
   preview,
+  hasEnded,
   schedule,
   today as todayIn,
   type CardCache,
@@ -320,9 +321,9 @@ export async function saveSettings(change: Partial<Settings>): Promise<void> {
   await load();
 }
 
-/** Active topics whose end date has passed: time to finish or extend them. */
+/** Active topics past their end date with nothing left to review: time to finish or extend them. */
 export const finishedLines = (): Topic[] =>
-  memory.topics.filter((t) => t.state === 'active' && t.endOn !== null && t.endOn < memory.today);
+  memory.topics.filter((t) => t.state === 'active' && hasEnded(t, memory.today));
 
 /** How far a topic has grown: check-ins done, and about how many it gets in all. */
 export function growthOf(t: Topic): { done: number; total: number } {

@@ -1,0 +1,2 @@
+# Sign-in lives at /signin; people often type /login.
+/login /signin 301
