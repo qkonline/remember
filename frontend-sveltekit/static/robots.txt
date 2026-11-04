@@ -1,3 +1,17 @@
 User-agent: *
+Allow: /
 Disallow: /app
 Disallow: /account
+Disallow: /admin
+Disallow: /review
+Disallow: /topics
+Disallow: /topic
+Disallow: /growth
+Disallow: /settings
+Disallow: /team
+Disallow: /teams
+Disallow: /support
+Disallow: /invite
+Disallow: /auth
+
+Sitemap: https://remember.kaiserkhan.com/sitemap.xml

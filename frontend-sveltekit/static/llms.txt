@@ -1,0 +1,15 @@
+# Remember
+
+> Remember is a spaced repetition web app for people studying for exams, or for anything they want to keep long term. You add a topic and your notes, and it brings each topic back just before you'd forget it.
+
+No flashcards to write: you add what you studied, and each day shows what to recall. You say how long you need to remember a topic: a set time, until a date such as your exam, or for good. Each review is rated Forgot, Partly or Remembered, and that sets when the topic comes back.
+
+It's built on the forgetting curve, found by the psychologist Hermann Ebbinghaus in the 1880s: we forget fast unless we go back to what we learned, and each time we recall something we forget it more slowly.
+
+It runs in the browser on phones and computers, can be installed to the Home Screen, works offline, and can send one reminder a day. It's free to get started.
+
+## Links
+
+- [Home](https://remember.kaiserkhan.com/): what Remember is and how it works
+- [Create an account](https://remember.kaiserkhan.com/signup)
+- [Sign in](https://remember.kaiserkhan.com/signin)

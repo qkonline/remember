@@ -29,16 +29,69 @@
   const DEMO_END = '2026-04-01';
   const demoPlan = ['2026-01-02', '2026-01-08', '2026-01-24', '2026-03-28'];
   const demoShelf = { id: 'demo', name: 'B', color: 'green' } as Shelf;
+
+  // What search engines and agents read. The answers repeat the page's own words: anything here
+  // that a visitor can't see is treated as spam.
+  const SITE = 'https://remember.kaiserkhan.com/';
+  const title = $derived(`${appName}: ${t('stop forgetting what you study')}`);
+  const description = $derived(
+    t(
+      'Remember is a spaced repetition app. Add a topic and your notes, and it brings each one back just before you’d forget it, based on the forgetting curve.',
+    ),
+  );
+  const curveQ = $derived(t('What is the forgetting curve?'));
+  const curveA = $derived(
+    t(
+      'In the 1880s, the German psychologist Hermann Ebbinghaus tested his own memory and found that we forget fast. Within a day, much of what we’ve just learned is gone unless we go back to it. We now call this drop the forgetting curve.',
+    ),
+  );
+  const helpQ = $derived(t('How does Remember help?'));
+  const helpA = $derived(
+    t(
+      'Each time you recall something, you forget it more slowly, so the gaps between reviews can grow: a day, then a few days, then weeks. This is called spaced repetition. Remember picks those days for you, right up to your exam.',
+    ),
+  );
+  const structured = $derived(
+    JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        { '@type': 'WebSite', name: appName, url: SITE },
+        {
+          '@type': 'WebApplication',
+          name: appName,
+          url: SITE,
+          description,
+          applicationCategory: 'EducationalApplication',
+          operatingSystem: 'Any',
+          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        },
+        {
+          '@type': 'FAQPage',
+          mainEntity: [
+            { '@type': 'Question', name: curveQ, acceptedAnswer: { '@type': 'Answer', text: curveA } },
+            { '@type': 'Question', name: helpQ, acceptedAnswer: { '@type': 'Answer', text: helpA } },
+          ],
+        },
+      ],
+    }).replaceAll('<', '\\u003c'),
+  );
 </script>
 
 <svelte:head>
-  <title>{appName}: {t('stop forgetting what you study')}</title>
-  <meta
-    name="description"
-    content={t(
-      'Remember brings back what you studied on the days you’re about to forget it, so it sticks for as long as you need it.',
-    )}
-  />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={SITE} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={appName} />
+  <meta property="og:url" content={SITE} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content="{SITE}og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <!-- eslint-disable-next-line svelte/no-at-html-tags -- built above from the page's own words -->
+  {@html `<script type="application/ld+json">${structured}</` + `script>`}
 </svelte:head>
 
 <section class="lp-hero">
@@ -63,6 +116,11 @@
   </svg>
 </section>
 
+<section class="lp-why">
+  <h2>{curveQ}</h2>
+  <p>{curveA}</p>
+</section>
+
 <section class="lp-demo" aria-label={t('How it looks')}>
   <PlanLine
     plan={demoPlan}
@@ -85,6 +143,11 @@
       </div>
     </CardDeck>
   </div>
+</section>
+
+<section class="lp-why">
+  <h2>{helpQ}</h2>
+  <p>{helpA}</p>
 </section>
 
 <style>
@@ -116,6 +179,26 @@
   }
   .lp-hero-text :global(.rk) {
     justify-self: start;
+  }
+  .lp-why {
+    display: grid;
+    gap: 0.625rem;
+    max-width: 38rem;
+    margin-block: 2.5rem;
+  }
+  .lp-why h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--color-heading);
+  }
+  .lp-why p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--color-muted);
   }
   .lp-art {
     justify-self: center;
@@ -214,7 +297,18 @@
       text-align: center;
     }
     h1 {
+      color: var(--color-leaf-edge);
       text-wrap: balance;
+    }
+    .lp-why {
+      margin-inline: auto;
+      text-align: center;
+    }
+    .lp-why h2 {
+      text-wrap: balance;
+    }
+    .lp-why p {
+      text-wrap: pretty;
     }
     .lp-lead {
       text-wrap: pretty;
