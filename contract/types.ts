@@ -54,8 +54,9 @@ export interface paths {
         put?: never;
         /**
          * Make an account with an email and password, signed in at once
-         * @description No email is sent unless the app requires confirmed email, in which case a confirmation
-         *     code goes out as with `/me/email/confirm/send`; that first code doesn't count toward the
+         * @description No email is sent unless `/auth/methods` says `confirmOnSignup` (always so when the app
+         *     requires confirmed email), in which case a confirmation code goes out as with
+         *     `/me/email/confirm/send`; that first code doesn't count toward the
          *     60 seconds between codes or the per-address limits, so asking for another right away
          *     works. The account starts unconfirmed. At most 30 sign-ups per network an hour.
          */
