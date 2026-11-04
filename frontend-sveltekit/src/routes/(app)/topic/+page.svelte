@@ -1,6 +1,5 @@
 <!--
-  One topic (`/topic?id=…`), in full: see TopicDetail. On a computer the Shelves page shows the
-  same beside its list; this page is where a phone goes, and where links to a topic land.
+  One topic (`/topic?id=…`), in full: see TopicDetail.
 -->
 <script lang="ts">
   import { page } from '$app/state';
@@ -20,7 +19,7 @@
 
 <div class="tp">
   <a class="tp-back" href={resolve('/(app)/topics')}
-    ><Glyph name="back" size={20} /><span>{t('Categories')}</span></a
+    ><Glyph name="back" size={20} /><span>{t('Topics')}</span></a
   >
 
   {#if !memory.loaded}
@@ -38,6 +37,7 @@
 <style>
   .tp {
     max-width: 40rem;
+    margin-inline: auto;
   }
   .tp-back {
     display: inline-flex;

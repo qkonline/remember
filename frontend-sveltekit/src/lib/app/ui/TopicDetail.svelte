@@ -1,20 +1,21 @@
 <!--
-  One topic in full: its category, title, notes (formatted; an older topic's separate link shows
-  below them until the topic is next edited, when it moves into the notes); how long it is kept (with Change); how it
-  has grown, check-in by check-in, and what comes next; and what can be done with it (check
-  yourself now, edit, mark as learned, delete). The topic page shows it; on a computer the
-  Categories page shows it beside the list.
+  One topic: a pot growing with it, its title and where it stands, the garden row of its reviews
+  up to its end date, its notes, and the one thing it needs now. Editing, changing how long and
+  deleting wait in the ⋯ menu. (An older topic's separate link shows below the notes until the
+  topic is next edited, when it moves into them.)
 -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
-  import { t } from '#lib/i18n/index.svelte.ts';
+  import { t, tn } from '#lib/i18n/index.svelte.ts';
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
   import Modal from '#lib/components/ui/Modal.svelte';
   import NotesEditor from './NotesEditor.svelte';
   import NotesText from './NotesText.svelte';
   import Button from '#lib/components/ui/Button.svelte';
+  import Dropdown from '#lib/components/ui/Dropdown.svelte';
+  import Menu from '#lib/components/ui/Menu.svelte';
   import {
     addShelf,
     changeHorizon,
@@ -22,18 +23,18 @@
     deleteTopic,
     editTopic,
     finish,
-    growthOf,
     memory,
     shelfOf,
     type Topic,
   } from '#lib/app/store.svelte.ts';
-  import { daysBetween, horizonProblem, type Horizon, type RatingName } from '#lib/app/schedule/index.ts';
-  import { formatDay, horizonLabel, timeLeft, whenNext } from '#lib/app/dates.ts';
+  import { hasEnded, horizonProblem, type Horizon } from '#lib/app/schedule/index.ts';
+  import { formatDay, horizonLabel, whenNext } from '#lib/app/dates.ts';
   import { say } from '#lib/app/ui.svelte.ts';
   import Glyph from './Glyph.svelte';
   import HorizonPicker from './HorizonPicker.svelte';
   import Key from './Key.svelte';
-  import ShelfMark from './ShelfMark.svelte';
+  import GrowingPot from './GrowingPot.svelte';
+  import PlanLine from './PlanLine.svelte';
   import ShelfPicker from './ShelfPicker.svelte';
   import Sheet from './Sheet.svelte';
 
@@ -42,51 +43,30 @@
   const today = $derived(memory.today);
   const shelf = $derived(shelfOf(topic));
   const history = $derived(checkinsOf(topic.id));
-  const grown = $derived(growthOf(topic));
   const length = $derived(horizonLabel(topic.horizon));
 
-  const ratingLabel: Record<RatingName, string> = { forgot: 'Forgot', hazy: 'Hazy', got: 'Remembered' };
-
-  type Step = {
-    key: string;
-    kind: 'plant' | RatingName | 'due' | 'next' | 'end' | 'learned';
-    what: string;
-    when: string;
-  };
-  const steps = $derived.by<Step[]>(() => {
-    const out: Step[] = [
-      { key: 'studied', kind: 'plant', what: t('Studied'), when: formatDay(topic.studiedOn, today) },
-      ...history.map((c) => ({
-        key: c.id,
-        kind: c.rating,
-        what: t(ratingLabel[c.rating]),
-        when: formatDay(c.day, today),
-      })),
-    ];
-    if (topic.state === 'done') {
-      out.push({
-        key: 'learned',
-        kind: 'learned',
-        what: t('Learned'),
-        when: topic.doneOn ? formatDay(topic.doneOn, today) : '',
-      });
-      return out;
-    }
-    if (topic.due)
-      out.push(
-        topic.due <= today
-          ? { key: 'due', kind: 'due', what: t('Due today'), when: formatDay(today, today) }
-          : {
-              key: 'due',
-              kind: 'next',
-              what: t('Next check-in, {when}', { when: whenNext(topic.due, today) }),
-              when: formatDay(topic.due, today),
-            },
-      );
-    if (topic.endOn)
-      out.push({ key: 'end', kind: 'end', what: t('Kept until here'), when: formatDay(topic.endOn, today) });
-    return out;
+  const ended = $derived(topic.state === 'active' && hasEnded(topic, today));
+  const status = $derived.by(() => {
+    if (topic.state === 'done')
+      return topic.doneOn ? t('Finished on {date}', { date: formatDay(topic.doneOn, today) }) : t('Finished');
+    if (ended && topic.endOn) return t('End date passed on {date}', { date: formatDay(topic.endOn, today) });
+    if (!topic.due) return t('No more reviews');
+    return topic.due <= today
+      ? t('Review today')
+      : t('Next review {when}', { when: whenNext(topic.due, today) });
   });
+  /** The row: the days reviewed, and the next one. */
+  const planned = $derived([
+    ...new Set([...history.map((c) => c.day), ...(topic.due && topic.state === 'active' ? [topic.due] : [])]),
+  ]);
+  const summary = $derived(
+    [
+      history.length ? tn(history.length, 'Reviewed once', 'Reviewed {count} times') : t('Not reviewed yet'),
+      length,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  );
 
   // Edit
   let editing = $state(false);
@@ -133,9 +113,9 @@
     changing = false;
   }
 
-  async function learned() {
+  async function finishIt() {
     await finish(topic.id);
-    say(t('{title} is learned. It stays in its category.', { title: topic.title }));
+    say(t('Finished {title}. It stays in your topics.', { title: topic.title }));
   }
 
   // Delete
@@ -150,68 +130,52 @@
 </script>
 
 <article class="tdl">
-  <div class="tdl-top">
-    <ShelfMark {shelf} size={30} />
-    <span class="tdl-shelf">{shelf?.name ?? t('No category')}</span>
-    <button type="button" class="tdl-edit" onclick={startEdit}
-      ><Glyph name="edit" size={18} />{t('Edit')}</button
-    >
+  <div class="tdl-head">
+    <GrowingPot {shelf} leaves={Math.min(6, history.length + 1)} size={64} />
+    <div class="tdl-name">
+      <h1 class="tdl-title">{topic.title}</h1>
+      <p class="tdl-status">{shelf?.name ?? t('No category')} · {status}</p>
+    </div>
+    <Dropdown align="end" variant="ghost">
+      {#snippet label()}<span class="tdl-dots" aria-label={t('More')}>⋯</span>{/snippet}
+      <Menu>
+        <li><button type="button" onclick={startEdit}>{t('Edit')}</button></li>
+        <li><button type="button" onclick={startChange}>{t('Change how long')}</button></li>
+        <li>
+          <button type="button" class="tdl-delete" onclick={() => (confirming = true)}>{t('Delete')}</button>
+        </li>
+      </Menu>
+    </Dropdown>
   </div>
 
-  <h1 class="tdl-title">{topic.title}</h1>
-  {#if topic.notes.trim()}<div class="tdl-notes"><NotesText text={topic.notes} /></div>{/if}
+  <div class="tdl-row">
+    <PlanLine plan={planned} start={topic.studiedOn} end={topic.endOn} {today} />
+    <p class="tdl-summary">{summary}</p>
+  </div>
+
+  {#if topic.notes.trim()}
+    <div class="tdl-notes"><NotesText text={topic.notes} /></div>
+  {:else if !topic.link}
+    <p class="tdl-nonotes">
+      {t('No notes yet.')}
+      <button type="button" onclick={startEdit}>{t('Add notes')}</button>
+    </p>
+  {/if}
   {#if topic.link}
     <a class="tdl-link" href={topic.link} target="_blank" rel="noopener noreferrer"
       ><Glyph name="link" size={16} /><span>{topic.link.replace(/^https?:\/\//i, '')}</span></a
     >
   {/if}
 
-  <div class="tdl-keep">
-    <Glyph name="calendar" size={34} />
-    <span class="tdl-keep-text">
-      <span class="tdl-keep-big">
-        {topic.state === 'done'
-          ? t('Learned')
-          : topic.endOn
-            ? t('Keep it until {date}', { date: formatDay(topic.endOn, today) })
-            : t('Keep it for good')}
-      </span>
-      <span class="tdl-keep-small">
-        {[
-          length ?? '',
-          topic.endOn && topic.state === 'active' && daysBetween(today, topic.endOn) < 70
-            ? timeLeft(topic.endOn, today)
-            : '',
-          t('{done} of about {total} check-ins done', { done: grown.done, total: grown.total }),
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-      </span>
-    </span>
-    <button type="button" class="tdl-change" onclick={startChange}>{t('Change')}</button>
-  </div>
-
-  <h2 class="tdl-h2">{t('How it is growing')}</h2>
-  <ol class="tdl-steps">
-    {#each steps as s (s.key)}
-      <li class="tdl-step tdl-{s.kind}">
-        <span class="tdl-dot" aria-hidden="true"></span>
-        <span class="tdl-what">{s.what}</span>
-        <span class="tdl-when">{s.when}</span>
-      </li>
-    {/each}
-  </ol>
-
   <div class="tdl-keys">
-    {#if topic.state === 'active'}
-      <Key tone="leaf" onclick={() => goto(`${resolve('/(app)/review')}?id=${topic.id}`)}
-        ><Glyph name="play" size={16} />{t('Check yourself now')}</Key
-      >
-      <Key onclick={learned}><Glyph name="sprout" size={18} />{t('Mark as learned')}</Key>
+    {#if topic.state === 'done' || ended}
+      <Key tone="leaf" onclick={startChange}>{t('Keep reviewing')}</Key>
     {:else}
-      <Key onclick={startChange}><Glyph name="sprout" size={18} />{t('Keep growing it')}</Key>
+      <Key tone="leaf" onclick={() => goto(`${resolve('/(app)/review')}?id=${topic.id}`)}
+        ><Glyph name="play" size={16} />{t('Review now')}</Key
+      >
     {/if}
-    <button type="button" class="tdl-delete" onclick={() => (confirming = true)}>{t('Delete')}</button>
+    {#if topic.state === 'active'}<Key onclick={finishIt}>{t('Finish')}</Key>{/if}
   </div>
 </article>
 
@@ -233,7 +197,7 @@
 </Sheet>
 
 <Sheet title={t('Change how long')} bind:open={changing}>
-  <p class="tdl-lead">{t('The check-ins move to fit the new end date. Nothing done so far is lost.')}</p>
+  <p class="tdl-lead">{t('Reviews move to fit the new end date. Nothing done so far is lost.')}</p>
   <HorizonPicker bind:horizon {today} problem={hzProblem} />
   {#snippet foot()}
     <Key tone="leaf" big wide onclick={saveChange} disabled={!!hzProblem}>{t('Save how long')}</Key>
@@ -241,9 +205,9 @@
 </Sheet>
 
 <Modal title={t('Delete {title}?', { title: topic.title })} bind:open={confirming}>
-  <p>{t('Its check-ins go too, on every device. This can’t be undone.')}</p>
+  <p>{t('Its reviews go too, on every device. This can’t be undone.')}</p>
   {#snippet actions()}
-    <Button onclick={() => (confirming = false)}>{t('Keep it')}</Button>
+    <Button onclick={() => (confirming = false)}>{t('Cancel')}</Button>
     <Button variant="danger-solid" onclick={remove}>{t('Delete topic')}</Button>
   {/snippet}
 </Modal>
@@ -252,189 +216,92 @@
   .tdl {
     display: flex;
     flex-direction: column;
+    gap: 1.25rem;
   }
-  .tdl-top {
+  .tdl-head {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-end;
+    gap: 0.875rem;
   }
-  .tdl-shelf {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-leaf-deep);
-  }
-  .tdl-edit,
-  .tdl-change,
-  .tdl-delete {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    min-height: 2.75rem;
-    padding: 0 0.875rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 999px;
-    background: var(--color-base-100);
-    color: var(--color-base-content);
-    font: inherit;
-    font-size: 0.875rem;
-    cursor: pointer;
-  }
-  .tdl-edit {
-    margin-inline-start: auto;
-  }
-  .tdl-change {
-    border: 0;
-    padding: 0 0.25rem;
-    color: var(--color-link);
-    font-weight: 500;
-  }
-  .tdl-delete {
-    color: light-dark(#be123c, #fb7185);
-  }
-  .tdl-edit:focus-visible,
-  .tdl-change:focus-visible,
-  .tdl-delete:focus-visible,
-  .tdl-link:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+  .tdl-name {
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 0.25rem;
   }
   .tdl-title {
-    margin: 0.875rem 0 0;
-    font-size: 2rem;
-    line-height: 1.1;
+    margin: 0;
+    font-size: 1.75rem;
+    line-height: 1.15;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     color: var(--color-heading);
     overflow-wrap: anywhere;
   }
+  .tdl-status {
+    margin: 0.25rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.9375rem;
+  }
+  .tdl-dots {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .tdl-delete {
+    color: var(--color-error);
+  }
+  .tdl-row {
+    padding: 0.75rem 1rem 0.875rem;
+    border-radius: 18px;
+    background: var(--color-base-200);
+  }
+  .tdl-summary {
+    margin: 0.5rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
+  }
   .tdl-notes {
-    margin: 0.625rem 0 0;
+    line-height: 1.55;
+  }
+  .tdl-nonotes {
+    margin: 0;
+    color: var(--color-muted);
+  }
+  .tdl-nonotes button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .tdl-nonotes button:focus-visible,
+  .tdl-link:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 6px;
   }
   .tdl-link {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    align-self: flex-start;
     max-width: 100%;
-    margin-top: 0.5rem;
-    min-height: 2.75rem;
     color: var(--color-link);
     font-size: 0.9375rem;
-    text-decoration: none;
   }
   .tdl-link span {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .tdl-keep {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 1.125rem;
-    padding: 0.875rem 1rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 18px;
-  }
-  .tdl-keep-text {
-    flex: 1;
-    display: grid;
-    gap: 0.125rem;
-    min-width: 0;
-  }
-  .tdl-keep-big {
-    font-weight: 500;
-  }
-  .tdl-keep-small {
-    font-size: 0.8125rem;
-    color: var(--color-muted);
-  }
-  .tdl-h2 {
-    margin: 1.375rem 0 0.75rem;
-    font-size: 0.9375rem;
-    font-weight: 500;
-  }
-  .tdl-steps {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .tdl-step {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-    padding-bottom: 0.875rem;
-  }
-  .tdl-step:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 1.25rem;
-    bottom: 0;
-    width: 2px;
-    background: var(--color-leaf-soft);
-  }
-  .tdl-dot {
-    position: relative;
-    flex: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    border: 1.6px solid var(--color-leaf-line);
-    background: var(--color-base-100);
-    margin-inline: 1px;
-  }
-  .tdl-plant .tdl-dot {
-    background: var(--color-leaf-soft);
-  }
-  .tdl-got .tdl-dot,
-  .tdl-learned .tdl-dot {
-    background: var(--color-leaf);
-    border-color: var(--color-leaf-edge);
-  }
-  .tdl-hazy .tdl-dot {
-    background: light-dark(#fef9c3, #332c10);
-    border-color: light-dark(#ca8a04, #fde047);
-  }
-  .tdl-forgot .tdl-dot {
-    background: light-dark(#ffe4e6, #3a1a20);
-    border-color: light-dark(#e11d48, #fb7185);
-  }
-  .tdl-next .tdl-dot,
-  .tdl-end .tdl-dot {
-    border-style: dashed;
-    border-color: var(--color-border-strong);
-  }
-  .tdl-what {
-    flex: 1;
-    font-size: 0.9375rem;
-  }
-  .tdl-due .tdl-what {
-    font-weight: 500;
-    color: var(--color-leaf-deep);
-  }
-  .tdl-next .tdl-what,
-  .tdl-end .tdl-what {
-    color: var(--color-muted);
-  }
-  .tdl-when {
-    font-size: 0.875rem;
-    color: var(--color-muted);
-  }
   .tdl-keys {
     display: flex;
     flex-wrap: wrap;
     gap: 0.625rem;
-    margin-top: 1rem;
-  }
-  .tdl-delete {
-    margin-inline-start: auto;
   }
   .tdl-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.125rem;
+    display: grid;
+    gap: 1rem;
   }
   .tdl-lead {
     margin: 0 0 1rem;

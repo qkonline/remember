@@ -22,9 +22,6 @@ export function formatDay(day: Day, today: Day): string {
   });
 }
 
-/** "Monday 2 November", for the top of Today. */
-export const longDay = (day: Day): string => fmt(day, { weekday: 'long', day: 'numeric', month: 'long' });
-
 /** "today", "tomorrow", "in 9 days", "in 3 weeks", "on 3 Feb". */
 export function whenNext(day: Day, today: Day): string {
   const n = daysBetween(today, day);
@@ -33,16 +30,6 @@ export function whenNext(day: Day, today: Day): string {
   if (n < 14) return tn(n, 'in 1 day', 'in {count} days');
   if (n < 60) return tn(Math.round(n / 7), 'in 1 week', 'in {count} weeks');
   return t('on {date}', { date: formatDay(day, today) });
-}
-
-/** How long until the end date: "1 day left", "12 days left", "3 weeks left", "until 3 Feb". */
-export function timeLeft(end: Day, today: Day): string {
-  const n = daysBetween(today, end);
-  if (n < 0) return t('ended {date}', { date: formatDay(end, today) });
-  if (n === 0) return t('last day');
-  if (n < 21) return tn(n, '1 day left', '{count} days left');
-  if (n < 70) return tn(Math.round(n / 7), '1 week left', '{count} weeks left');
-  return t('until {date}', { date: formatDay(end, today) });
 }
 
 /** A length: "1 week", "3 months", "1 year", "45 days". */

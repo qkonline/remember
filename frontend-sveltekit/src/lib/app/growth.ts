@@ -1,20 +1,12 @@
-// Growth: what the person's check-ins add up to. Pure functions over check-ins and topics, so the
-// Growth page, the review's last screen and the tests read the same numbers.
+// Progress: what the person's check-ins add up to. Pure functions over check-ins, so the Progress
+// page, the review's last screen and the tests read the same numbers.
 
-import { addDays, daysBetween, type Day, type RatingName } from '#lib/app/schedule/index.ts';
+import { addDays, type Day, type RatingName } from '#lib/app/schedule/index.ts';
 
 export interface GrowthCheckIn {
   topic: string;
   rating: RatingName;
   day: Day;
-}
-
-export interface GrowthTopic {
-  id: string;
-  shelf: string | null;
-  state: 'active' | 'done';
-  doneOn: Day | null;
-  title: string;
 }
 
 /** Days in a row with at least one check-in, ending today, or yesterday when today has none yet. */
@@ -27,18 +19,6 @@ export function currentRun(checkins: readonly GrowthCheckIn[], today: Day): numb
     day = addDays(day, -1);
   }
   return n;
-}
-
-/** The longest run of days in a row with a check-in. */
-export function longestRun(checkins: readonly GrowthCheckIn[]): number {
-  const days = [...new Set(checkins.map((c) => c.day))].sort();
-  let best = 0;
-  let run = 0;
-  for (let i = 0; i < days.length; i++) {
-    run = i > 0 && daysBetween(days[i - 1]!, days[i]!) === 1 ? run + 1 : 1;
-    best = Math.max(best, run);
-  }
-  return best;
 }
 
 /** Check-ins per day for the `weeks` weeks ending with today's week (Monday first), oldest first. */
@@ -61,12 +41,6 @@ export function calendar(
 export const level = (count: number): number =>
   count <= 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 6 ? 3 : 4;
 
-/** The share of check-ins recalled (Remembered or Hazy: both count), 0 to 1, or null with none. */
-export function remembered(checkins: readonly GrowthCheckIn[]): number | null {
-  if (!checkins.length) return null;
-  return checkins.filter((c) => c.rating !== 'forgot').length / checkins.length;
-}
-
 /** How many check-ins were fully remembered (Hazy is not), for "You remembered 2 of 3". */
 export const rememberedCount = (checkins: readonly GrowthCheckIn[]): number =>
   checkins.filter((c) => c.rating === 'got').length;
@@ -77,35 +51,3 @@ export const since = <T extends GrowthCheckIn>(checkins: readonly T[], from: Day
 
 /** The first day of today's month. */
 export const monthStart = (today: Day): Day => `${today.slice(0, 8)}01`;
-
-/** Per shelf (null: no shelf): its topics and the share of its check-ins recalled. */
-export function byShelf(
-  topics: readonly GrowthTopic[],
-  checkins: readonly GrowthCheckIn[],
-): Map<string | null, { topics: number; remembered: number | null }> {
-  const shelfOf = new Map(topics.map((t) => [t.id, t.shelf]));
-  const out = new Map<string | null, { topics: number; remembered: number | null }>();
-  for (const t of topics) {
-    const row = out.get(t.shelf) ?? { topics: 0, remembered: null };
-    row.topics++;
-    out.set(t.shelf, row);
-  }
-  const groups = new Map<string | null, GrowthCheckIn[]>();
-  for (const c of checkins) {
-    if (!shelfOf.has(c.topic)) continue;
-    const s = shelfOf.get(c.topic) ?? null;
-    groups.set(s, [...(groups.get(s) ?? []), c]);
-  }
-  for (const [s, list] of groups) {
-    const row = out.get(s);
-    if (row) row.remembered = remembered(list);
-  }
-  return out;
-}
-
-/** Topics finished most recently first. */
-export const recentlyLearned = <T extends GrowthTopic>(topics: readonly T[], limit = 5): T[] =>
-  topics
-    .filter((t) => t.state === 'done')
-    .sort((a, b) => ((a.doneOn ?? '') < (b.doneOn ?? '') ? 1 : -1))
-    .slice(0, limit);

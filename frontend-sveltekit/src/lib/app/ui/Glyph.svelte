@@ -18,6 +18,8 @@
     | 'link'
     | 'bell'
     | 'cards'
+    | 'sun'
+    | 'exit'
     | 'sprout'
     | 'calendar'
     | 'check'
@@ -55,6 +57,13 @@
   {:else if name === 'you'}
     <circle cx="11" cy="8" r="3.5" class="gl-fill" /><path
       d="M4 19c1-4 4-5.5 7-5.5s6 1.5 7 5.5"
+      class="gl-line gl-none"
+    />
+  {:else if name === 'exit'}
+    <path d="M9 4H5v14h4M10 11h8M15 8l3 3-3 3" class="gl-line gl-none" />
+  {:else if name === 'sun'}
+    <circle cx="11" cy="11" r="4" class="gl-fill" /><path
+      d="M11 2.5v2M11 17.5v2M2.5 11h2M17.5 11h2M5 5l1.4 1.4M15.6 15.6L17 17M5 17l1.4-1.4M15.6 6.4L17 5"
       class="gl-line gl-none"
     />
   {:else if name === 'plus'}

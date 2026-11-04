@@ -1,10 +1,9 @@
 <!--
-  Categories: every topic, by category. The categories as pots on a wooden wall shelf across the
-  top (tap one to see only it, and to rename, recolour or remove it), "New category" at the top,
-  Growing or Learned, and a search over titles and notes. On a computer the topic picked opens
-  beside the list; on a phone a topic opens its own page. (In the code and the synced data a
-  category is still a "shelf".) `?shelf=<id>` (or `none`) starts on a category, `?id=<topic>` on
-  a topic.
+  Topics: everything you've added, to find one. The categories stand as pots on a wooden wall shelf
+  across the top (tap one to see only it, and to rename, recolour or remove it), "New category" at
+  the top, Active or Finished, and a search over titles and notes. A topic opens its own page.
+  (In the code and the synced data a category is still a "shelf".) `?shelf=<id>` (or `none`) starts
+  on a category.
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
@@ -22,21 +21,14 @@
   import GrowingPot from '#lib/app/ui/GrowingPot.svelte';
   import ShelfSheet from '#lib/app/ui/ShelfSheet.svelte';
   import Plank from '#lib/app/ui/Plank.svelte';
-  import TopicDetail from '#lib/app/ui/TopicDetail.svelte';
   import TopicRow from '#lib/app/ui/TopicRow.svelte';
 
   let show = $state<'active' | 'done'>('active');
   let query = $state('');
   let shelfFilter = $state<string | null>(page.url.searchParams.get('shelf'));
-  let selectedId = $state<string | null>(page.url.searchParams.get('id'));
-  let wide = $state(false);
   let search = $state<HTMLInputElement>();
 
   onMount(() => {
-    const mq = matchMedia('(min-width: 64rem)');
-    const set = () => (wide = mq.matches);
-    set();
-    mq.addEventListener('change', set);
     const keys = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (e.key === '/' && !target?.closest('input, textarea, select, [contenteditable]')) {
@@ -45,10 +37,7 @@
       }
     };
     addEventListener('keydown', keys);
-    return () => {
-      mq.removeEventListener('change', set);
-      removeEventListener('keydown', keys);
-    };
+    return () => removeEventListener('keydown', keys);
   });
 
   const known = (id: string | null) => id !== null && memory.shelves.some((s) => s.id === id);
@@ -98,34 +87,15 @@
     ),
   );
 
-  // On a computer the list keeps a topic open beside it: the one picked, or the first.
-  const selected = $derived(
-    wide
-      ? (shown.find((x) => x.id === selectedId) ??
-          (selectedId ? memory.topics.find((x) => x.id === selectedId) : null) ??
-          shown[0] ??
-          null)
-      : null,
-  );
-
   function syncUrl() {
     const u = new URL(page.url.href);
     if (shelfFilter) u.searchParams.set('shelf', shelfFilter);
     else u.searchParams.delete('shelf');
-    if (selectedId) u.searchParams.set('id', selectedId);
-    else u.searchParams.delete('id');
     replaceState(u, {});
   }
 
   function pickShelf(id: string) {
     shelfFilter = shelfFilter === id ? null : id;
-    syncUrl();
-  }
-
-  function open(e: MouseEvent, id: string) {
-    if (!wide || e.metaKey || e.ctrlKey || e.shiftKey) return;
-    e.preventDefault();
-    selectedId = id;
     syncUrl();
   }
 
@@ -142,13 +112,12 @@
   }
 </script>
 
-<svelte:head><title>{t('Categories')} · {appName}</title></svelte:head>
+<svelte:head><title>{t('Topics')} · {appName}</title></svelte:head>
 
-<div class="sv" class:sv-split={wide && memory.topics.length > 0}>
+<div class="sv">
   <div class="sv-list">
     <header class="sv-head">
-      <h1>{t('Categories')}</h1>
-      <span class="sv-total">{tn(memory.topics.length, '1 topic', '{count} topics')}</span>
+      <h1>{t('Topics')}</h1>
       {#if memory.topics.length || memory.shelves.length}
         <button type="button" class="sv-new" onclick={newShelf} aria-label={t('New category')}
           ><Glyph name="plus" size={16} /><span class="sv-new-long" aria-hidden="true"
@@ -173,15 +142,15 @@
           </div>
           <Plank />
         </div>
-        <h2 id="blank-title">{t('Nothing planted yet')}</h2>
+        <h2 id="blank-title">{t('No topics yet')}</h2>
         <p>
           {t(
-            'Add the first thing you studied. Put it in a category like Biology or Law, and it grows here as you check in.',
+            'Add the first thing you studied. Put it in a category like Biology or Law to keep things together.',
           )}
         </p>
         <div class="sv-blank-keys">
           <Key tone="leaf" big onclick={() => startAdding()}
-            ><Glyph name="plus" size={18} />{t('Add what you studied')}</Key
+            ><Glyph name="plus" size={18} />{t('Add topic')}</Key
           >
           <Key big onclick={newShelf}>{t('Make a category first')}</Key>
         </div>
@@ -226,7 +195,6 @@
           />
         </Field>
         <span class="sv-search-icon" aria-hidden="true"><Glyph name="search" size={18} /></span>
-        {#if wide}<kbd class="sv-kbd" aria-hidden="true">/</kbd>{/if}
       </div>
 
       {#if current}
@@ -243,10 +211,10 @@
 
       <div class="sv-seg" role="radiogroup" aria-label={t('Show')}>
         <button type="button" role="radio" aria-checked={show === 'active'} onclick={() => (show = 'active')}
-          >{t('Growing')} <span>{counts.active}</span></button
+          >{t('Active')} <span>{counts.active}</span></button
         >
         <button type="button" role="radio" aria-checked={show === 'done'} onclick={() => (show = 'done')}
-          >{t('Learned')} <span>{counts.done}</span></button
+          >{t('Finished')} <span>{counts.done}</span></button
         >
       </div>
 
@@ -254,12 +222,7 @@
         <ul class="sv-rows">
           {#each shown as topic (topic.id)}
             <li>
-              <TopicRow
-                {topic}
-                href="{resolve('/(app)/topic')}?id={topic.id}"
-                onclick={(e) => open(e, topic.id)}
-                selected={selected?.id === topic.id}
-              />
+              <TopicRow {topic} href="{resolve('/(app)/topic')}?id={topic.id}" />
             </li>
           {/each}
         </ul>
@@ -268,26 +231,12 @@
           {query.trim()
             ? t('No topic matches “{query}”.', { query: query.trim() })
             : show === 'done'
-              ? t('Nothing learned here yet. Topics land here when you mark them learned.')
-              : t('Nothing growing here.')}
+              ? t('Nothing finished here yet.')
+              : t('No active topics here.')}
         </p>
       {/if}
     {/if}
   </div>
-
-  {#if selected}
-    <section class="sv-detail" aria-label={selected.title}>
-      {#key selected.id}
-        <TopicDetail
-          topic={selected}
-          ondeleted={() => {
-            selectedId = null;
-            syncUrl();
-          }}
-        />
-      {/key}
-    </section>
-  {/if}
 </div>
 
 <ShelfSheet
@@ -304,6 +253,10 @@
 />
 
 <style>
+  .sv {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
   .sv-head {
     display: flex;
     align-items: baseline;
@@ -317,10 +270,6 @@
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--color-heading);
-  }
-  .sv-total {
-    color: var(--color-muted);
-    font-size: 0.875rem;
   }
   /* Nothing yet: an empty shelf with a seed pot, then the words, then the key. */
   .sv-blank {
@@ -397,19 +346,6 @@
     color: var(--color-muted);
     display: grid;
     pointer-events: none;
-  }
-  .sv-kbd {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 0 0.375rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 6px;
-    background: var(--color-base-100);
-    font: inherit;
-    font-size: 0.75rem;
-    color: var(--color-muted);
   }
   /* The categories as pots on a wooden wall shelf, each plant as big as what it holds; tap one
      to see only it. */
@@ -606,9 +542,6 @@
       display: inline;
     }
   }
-  .sv-total {
-    white-space: nowrap;
-  }
   .sv-narrow .sv-rack {
     padding-inline: 1.5rem;
   }
@@ -636,12 +569,6 @@
   }
 
   @media (min-width: 64rem) {
-    .sv-split {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
-      gap: 1.75rem;
-      align-items: start;
-    }
     .sv-head h1 {
       font-size: 1.875rem;
     }
@@ -653,19 +580,6 @@
     }
     .sv-rows li:last-child :global(.tr) {
       border-bottom: 0;
-    }
-    .sv-detail {
-      position: sticky;
-      top: 2rem;
-      max-height: calc(100dvh - 4rem);
-      overflow-y: auto;
-      padding: 1.5rem;
-      border: 1px solid var(--color-base-300);
-      border-radius: 24px;
-      box-sizing: border-box;
-    }
-    .sv-detail :global(.tdl-title) {
-      font-size: 1.75rem;
     }
   }
 </style>
