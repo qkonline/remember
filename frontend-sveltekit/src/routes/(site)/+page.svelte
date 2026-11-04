@@ -207,6 +207,23 @@
     }
   }
 
+  @media (max-width: 47.99rem) {
+    .lp-hero-text {
+      justify-self: center;
+      justify-items: center;
+      text-align: center;
+    }
+    h1 {
+      text-wrap: balance;
+    }
+    .lp-lead {
+      text-wrap: pretty;
+    }
+    .lp-hero-text :global(.rk) {
+      justify-self: center;
+    }
+  }
+
   @media (min-width: 48rem) {
     .lp-hero {
       grid-template-columns: minmax(0, 1fr) auto;

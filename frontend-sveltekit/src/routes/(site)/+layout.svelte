@@ -16,10 +16,13 @@
 <div class="site">
   <header class="top">
     <div class="bar">
-      <a class="brand" href={resolve('')}><Logo size={28} />{appName}</a>
+      <a class="brand" href={resolve('')} aria-label={appName}
+        ><Logo size={28} /><span class="brand-name">{appName}</span></a
+      >
       <nav aria-label={t('Account')}>
         <ModeSwitch />
-        <a href={resolve('signin')}>{t('Sign in')}</a>
+        <a class="auth" href={resolve('signin')}>{t('Sign in')}</a>
+        <a class="auth auth-phone" href={resolve('signup')}>{t('Create account')}</a>
       </nav>
     </div>
   </header>
@@ -94,5 +97,38 @@
 
   footer {
     border-top: 1px solid var(--color-border);
+  }
+
+  .auth-phone {
+    display: none;
+  }
+
+  /* Phones and small tablets only, until the desktop pass. */
+  @media (max-width: 47.99rem) {
+    nav {
+      gap: var(--space-2);
+    }
+    nav a.auth {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+      padding-inline: 0.125rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--color-leaf-deep);
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+    }
+    footer.bar {
+      justify-content: center;
+    }
+  }
+
+  /* Both links and the theme switch fit beside the logo only without its name. */
+  @media (max-width: 24.25rem) {
+    .brand-name {
+      display: none;
+    }
   }
 </style>
