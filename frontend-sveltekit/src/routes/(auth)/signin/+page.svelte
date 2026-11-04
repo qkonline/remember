@@ -30,6 +30,7 @@
   import Input from '#lib/components/ui/Input.svelte';
   import Notice from '#lib/components/ui/Notice.svelte';
   import Trans from '#lib/components/Trans.svelte';
+  import Leaves from '#lib/app/ui/Leaves.svelte';
 
   const methods = $derived(auth.methods!);
   // Derived, so a link to this page with other parameters (another `next`) is followed.
@@ -134,7 +135,7 @@
   {/if}
 
   {#if mode === 'password'}
-    <form class="stack" onsubmit={withPassword} novalidate>
+    <form class="stack auth-keys" onsubmit={withPassword} novalidate>
       <Field label={t('Email')} id="email">
         <Input
           type="email"
@@ -152,7 +153,9 @@
           action="signin"
         />{/if}
       <FormError message={task.error} />
-      <SubmitButton {task} busyLabel={t('Signing in…')}>{t('Sign in')}</SubmitButton>
+      <SubmitButton {task} busyLabel={t('Signing in…')}
+        ><span class="key-leaves"><Leaves size={96} /></span>{t('Sign in')}</SubmitButton
+      >
       <p class="small">
         <a href="{resolve('forgot')}{email ? `?email=${encodeURIComponent(email.trim())}` : ''}"
           >{t('Forgot your password?')}</a
@@ -160,7 +163,7 @@
       </p>
     </form>
   {:else if mode === 'code'}
-    <form class="stack" onsubmit={sendCode} novalidate>
+    <form class="stack auth-keys" onsubmit={sendCode} novalidate>
       <Field label={t('Email')} id="code-email">
         <Input
           type="email"
@@ -177,7 +180,9 @@
           action="code"
         />{/if}
       <FormError message={task.error} />
-      <SubmitButton {task} busyLabel={t('Sending…')}>{t('Email me a code')}</SubmitButton>
+      <SubmitButton {task} busyLabel={t('Sending…')}
+        ><span class="key-leaves"><Leaves size={96} /></span>{t('Email me a code')}</SubmitButton
+      >
       <p class="small">
         <Button type="button" variant="link" onclick={() => switchTo('password')}
           >{t('Use my password instead')}</Button
@@ -185,7 +190,7 @@
       </p>
     </form>
   {:else}
-    <form class="stack" onsubmit={verifyCode} novalidate>
+    <form class="stack auth-keys" onsubmit={verifyCode} novalidate>
       <p>
         <Trans
           text={msg('We sent a code to <b>{email}</b>. It works for 10 minutes.')}
@@ -196,7 +201,9 @@
       </p>
       <CodeInput id="code" bind:value={code} />
       <FormError message={task.error} />
-      <SubmitButton {task} busyLabel={t('Checking…')}>{t('Sign in')}</SubmitButton>
+      <SubmitButton {task} busyLabel={t('Checking…')}
+        ><span class="key-leaves"><Leaves size={96} /></span>{t('Sign in')}</SubmitButton
+      >
       <p class="small">
         <Button type="button" variant="link" onclick={() => switchTo('code')}>{t('Send a new code')}</Button>
       </p>
@@ -205,7 +212,7 @@
 
   {#if canPasskey || google || (methods.emailCode && mode === 'password')}
     <Divider>{t('or')}</Divider>
-    <div class="stack others">
+    <div class="stack others auth-keys">
       {#if canPasskey}
         <SubmitButton
           task={passkeyTask}
@@ -247,7 +254,7 @@
     </div>
   {/if}
 
-  <p class="muted">
+  <p class="muted auth-other">
     {t('New here?')}
     <a href="{resolve('signup')}{next ? `?next=${encodeURIComponent(next)}` : ''}">{t('Create an account')}</a
     >

@@ -70,6 +70,10 @@
     font-size: var(--text-xl);
   }
 
+  :global(.key-leaves) {
+    display: none;
+  }
+
   /* Phones and small tablets only, until the desktop pass: the same 44 px row for the logo and
      the switch, so they sit on one line. */
   @media (max-width: 47.99rem) {
@@ -86,6 +90,47 @@
       display: flex;
       align-items: center;
       height: 2.75rem;
+    }
+
+    /* A page opts in with `auth-keys` on the group: the app's raised keys, leaf for the main
+       action and plain for the others. */
+    .auth-card :global(.auth-keys .btn-block) {
+      --btn-color: var(--color-base-100);
+      --btn-fg: var(--color-leaf-deep);
+      position: relative;
+      overflow: hidden;
+      min-height: 3.5rem;
+      border: 1px solid var(--color-base-300);
+      border-radius: 16px;
+      background: var(--color-base-100);
+      box-shadow: 0 4px 0 var(--color-base-300);
+      color: var(--color-leaf-deep);
+      font-size: 1.0625rem;
+      font-weight: 500;
+      transition:
+        transform 80ms ease,
+        box-shadow 80ms ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .auth-card :global(.auth-keys .btn-block.btn-primary) {
+      --btn-color: var(--color-leaf-key);
+      --btn-fg: var(--color-leaf-ink);
+      border-color: var(--color-leaf-key);
+      background: var(--color-leaf-key);
+      box-shadow: 0 4px 0 var(--color-leaf-edge);
+      color: var(--color-leaf-ink);
+    }
+    .auth-card :global(.auth-keys .btn-block:active) {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
+    :global(.key-leaves) {
+      display: contents;
+    }
+    .auth-card :global(.auth-keys > p.small),
+    .auth-card :global(.auth-other) {
+      text-align: center;
     }
   }
 
