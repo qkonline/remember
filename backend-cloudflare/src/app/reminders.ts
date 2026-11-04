@@ -158,8 +158,8 @@ export async function runReminder(env: Env, payload: unknown, now = Date.now()):
       ctx,
       [userId],
       {
-        title: tr(ctx.lang, 'Time to refresh'),
-        body: n === 1 ? tr(ctx.lang, '1 topic to refresh today.') : tr(ctx.lang, '{count} topics to refresh today.', { count: n }),
+        title: tr(ctx.lang, 'Time to review'),
+        body: n === 1 ? tr(ctx.lang, '1 topic to review today.') : tr(ctx.lang, '{count} topics to review today.', { count: n }),
         url: '/app',
       },
       { wait: true },

@@ -16,7 +16,7 @@
     value = $bindable(''),
     rows = 6,
     label = t('Notes'),
-    hint = t('Shown when you check yourself. Paste links straight in.'),
+    hint = t('Shown when you review. Paste links straight in.'),
   }: { value?: string; rows?: number; label?: string; hint?: string } = $props();
 
   let area = $state<HTMLTextAreaElement>();

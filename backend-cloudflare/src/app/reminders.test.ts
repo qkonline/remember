@@ -85,7 +85,7 @@ describe('the reminder job', () => {
       put('topics', 'd', { due: '2026-11-02', state: 'done' }),
     ]);
     await runReminder(env, { userId: 'u1', at: '08:30', tz: 'America/New_York' }, now);
-    expect(notes(db)).toEqual([{ title: 'Time to refresh', body: '2 topics to refresh today.', url: '/app' }]);
+    expect(notes(db)).toEqual([{ title: 'Time to review', body: '2 topics to review today.', url: '/app' }]);
     const next = db.prepare('SELECT run_at FROM core_jobs ORDER BY run_at DESC LIMIT 1').get() as { run_at: number };
     expect(next.run_at).toBe(Date.UTC(2026, 10, 3, 13, 30));
   });

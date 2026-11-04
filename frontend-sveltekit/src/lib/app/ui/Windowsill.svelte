@@ -9,6 +9,7 @@
   import { tn } from '#lib/i18n/index.svelte.ts';
   import type { Shelf } from '#lib/app/store.svelte.ts';
   import GrowingPot from './GrowingPot.svelte';
+  import WateringCan from './WateringCan.svelte';
 
   export interface SillPot {
     key: string;
@@ -38,14 +39,7 @@
         <GrowingPot color="green" leaves={0} size={66} letter={false} />
       </li>
       <li class="ws-can" aria-hidden="true">
-        <svg width="78" height="62" viewBox="0 0 78 62">
-          <path d="M14 22h34l-3 34H17z" class="ws-can-body" />
-          <path d="M48 30l22-14" class="ws-can-spout" />
-          <path d="M66 12l8 6-4 4-8-6z" class="ws-can-rose" />
-          <path d="M20 22c0-10 22-10 22 0" class="ws-can-handle" />
-          <circle cx="72" cy="28" r="1.6" class="ws-drop-dot" />
-          <circle cx="68" cy="33" r="1.3" class="ws-drop-dot" />
-        </svg>
+        <WateringCan />
       </li>
     {/if}
     {#each pots as p (p.key)}
@@ -129,7 +123,7 @@
     display: grid;
     justify-items: center;
     gap: 0.125rem;
-    flex: 0 1 4.5rem;
+    flex: 0 1 5rem;
     min-width: 0;
   }
   /* On a narrow phone the pots shrink to fit the window rather than spill past it. */
@@ -140,11 +134,18 @@
   .ws-label {
     max-width: 100%;
     margin-bottom: 0.375rem;
+    min-height: 2.3em;
     font-size: 0.6875rem;
+    line-height: 1.15;
     color: var(--color-muted);
+    text-align: center;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
   .ws-drop {
     position: absolute;
@@ -173,28 +174,6 @@
   .ws-can {
     align-self: flex-end;
     margin-bottom: 0.25rem;
-  }
-  .ws-can-body {
-    fill: light-dark(#e7e2d8, #3d3a33);
-    stroke: light-dark(#57534e, #d6d3d1);
-    stroke-width: 1.4;
-    stroke-linejoin: round;
-  }
-  .ws-can-spout,
-  .ws-can-handle {
-    fill: none;
-    stroke: light-dark(#57534e, #d6d3d1);
-    stroke-width: 2.4;
-    stroke-linecap: round;
-  }
-  .ws-can-rose {
-    fill: light-dark(#e7e2d8, #3d3a33);
-    stroke: light-dark(#57534e, #d6d3d1);
-    stroke-width: 1.4;
-  }
-  .ws-drop-dot {
-    fill: var(--color-leaf-line);
-    opacity: 0.6;
   }
   .ws-sill {
     display: block;

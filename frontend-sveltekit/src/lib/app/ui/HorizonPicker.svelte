@@ -14,20 +14,32 @@
     horizon = $bindable(),
     today,
     problem = null,
-  }: { horizon: Horizon; today: Day; problem?: string | null } = $props();
+    common = false,
+  }: {
+    horizon: Horizon;
+    today: Day;
+    problem?: string | null;
+    /** Only the usual choices, unless the one picked is another. */
+    common?: boolean;
+  } = $props();
 
   const uid = $props.id();
 
   const choices: { kind: HorizonKind; label: string }[] = [
     { kind: 'week', label: msg('1 week') },
-    { kind: 'month', label: msg('1 month') },
+    { kind: 'month', label: msg('A month') },
     { kind: 'quarter', label: msg('3 months') },
     { kind: 'half', label: msg('6 months') },
-    { kind: 'year', label: msg('1 year') },
+    { kind: 'year', label: msg('A year') },
     { kind: 'forever', label: msg('Forever') },
     { kind: 'until', label: msg('Until a date') },
     { kind: 'custom', label: msg('Custom') },
   ];
+
+  const USUAL: HorizonKind[] = ['month', 'quarter', 'year', 'forever', 'until'];
+  const shown = $derived(
+    common && USUAL.includes(horizon.kind) ? choices.filter((c) => USUAL.includes(c.kind)) : choices,
+  );
 
   // The custom length as the person types it: a number and a unit.
   let amount = $state(horizon.kind === 'custom' && horizon.days ? String(horizon.days) : '45');
@@ -57,9 +69,9 @@
 </script>
 
 <fieldset class="hz">
-  <legend class="hz-legend">{t('Keep it for')}</legend>
+  <legend class="hz-legend">{t('How long do you need it?')}</legend>
   <div class="hz-chips">
-    {#each choices as c (c.kind)}
+    {#each shown as c (c.kind)}
       <label class="hz-chip" class:hz-on={horizon.kind === c.kind}>
         <input
           type="radio"

@@ -71,6 +71,7 @@ test.describe(() => {
 
 test('feedback from inside the app, and display preferences', async ({ page }) => {
   await signUp(page, uniqueEmail('feedback'), password);
+  await page.goto('/settings');
   await page.getByRole('button', { name: 'Send feedback' }).click();
   await page.getByLabel('What’s on your mind?').fill('The e2e tests like this page.');
   await page.getByRole('button', { name: 'Send', exact: true }).click();

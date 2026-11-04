@@ -1,8 +1,8 @@
 <!--
   Remember's frame around every signed-in page (the core layout draws it in place of its own
   header and footer, see `appFrame` in frame.ts). On a phone: a slim top bar and a tab bar with
-  the raised + key in the middle. From 64rem: a sidebar with the Add key, the pages, and the
-  person at the bottom. The review screen (/review) gets no frame, to stay on one card.
+  the raised + key in the middle. From 64rem: a sidebar with the Add key and the pages; everything
+  else lives in Settings. The review screen (/review) gets no frame, to stay on one card.
   It also keeps the device's records loaded (`watch`), hosts the Add sheet and the note at the
   bottom, and holds the shelf colours every page uses (`.shelf-<colour>`).
 -->
@@ -15,15 +15,14 @@
   import type { User } from '#lib/api/index.ts';
   import { auth } from '#lib/session.svelte.ts';
   import { msg, t } from '#lib/i18n/index.svelte.ts';
-  import Avatar from '#lib/components/Avatar.svelte';
   import Bell from '#lib/components/Bell.svelte';
-  import FeedbackDialog from '#lib/components/FeedbackDialog.svelte';
   import SyncRefused from '#lib/components/shell/SyncRefused.svelte';
   import SyncStatus from '#lib/components/shell/SyncStatus.svelte';
   import Trans from '#lib/components/Trans.svelte';
   import { load, memory, watch } from '#lib/app/store.svelte.ts';
   import { syncNow } from '#lib/db/index.svelte.ts';
   import { notifications } from '#lib/notifications.svelte.ts';
+  import { pwa } from '#lib/pwa.svelte.ts';
   import PullToRefresh from '#lib/app/ui/PullToRefresh.svelte';
   import { todayList } from '#lib/app/schedule/index.ts';
   import { startAdding, ui } from '#lib/app/ui.svelte.ts';
@@ -32,7 +31,6 @@
   import Key from '#lib/app/ui/Key.svelte';
   import Leaves from '#lib/app/ui/Leaves.svelte';
   import Logo from '#lib/app/ui/Logo.svelte';
-  import ModeSwitch from '#lib/app/ui/ModeSwitch.svelte';
   import UndoBar from '#lib/app/ui/UndoBar.svelte';
 
   let { user, children }: { user: User; children: Snippet } = $props();
@@ -57,9 +55,9 @@
     '/(app)/app' | '/(app)/topics' | '/(app)/topic' | '/(app)/growth' | '/(app)/settings' | '/(app)/account';
   const tabs: { path: Tab; label: string; glyph: GlyphName; also?: Tab[] }[] = [
     { path: '/(app)/app', label: msg('Today'), glyph: 'today' },
-    { path: '/(app)/topics', label: msg('Categories'), glyph: 'shelves', also: ['/(app)/topic'] },
-    { path: '/(app)/growth', label: msg('Growth'), glyph: 'growth' },
-    { path: '/(app)/settings', label: msg('You'), glyph: 'you', also: ['/(app)/account'] },
+    { path: '/(app)/topics', label: msg('Topics'), glyph: 'shelves', also: ['/(app)/topic'] },
+    { path: '/(app)/growth', label: msg('Progress'), glyph: 'growth' },
+    { path: '/(app)/settings', label: msg('Settings'), glyph: 'you', also: ['/(app)/account'] },
   ];
 
   const here = $derived(page.url.pathname.replace(/\/$/, '') || '/');
@@ -79,7 +77,9 @@
   );
   const teamsOn = $derived(!!auth.features?.teams);
   const adminOn = $derived(!!auth.features?.admin && !!user.isAdmin && !auth.support);
-  let feedback = $state<ReturnType<typeof FeedbackDialog>>();
+  // Pending changes are nobody's concern while connected: they go by themselves.
+  const offline = $derived(!!auth.features?.sync && !pwa.online);
+  const started = $derived(!memory.loaded || memory.topics.length > 0);
 </script>
 
 <div class="rf" class:rf-bare={bare}>
@@ -89,17 +89,21 @@
         ><Logo size={32} /></a
       >
       <div class="rf-tools rf-top-tools">
-        {#if auth.features?.sync}<SyncStatus />{/if}
-        <ModeSwitch />
+        {#if offline}<SyncStatus />{/if}
         <Bell />
       </div>
     </header>
 
     <aside class="rf-side" aria-label={t('Remember')}>
-      <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={44} />{appName}</a>
-      <Key tone="leaf" wide onclick={() => startAdding()}>
-        <Glyph name="plus" size={18} />{t('Add what you studied')}
-      </Key>
+      <div class="rf-side-head">
+        <a class="rf-brand rf-brand-side" href={resolve('/(app)/app')}><Logo size={36} />{appName}</a>
+        <div class="rf-tools"><Bell /></div>
+      </div>
+      {#if started}
+        <Key tone="leaf" wide onclick={() => startAdding()}>
+          <Glyph name="plus" size={18} />{t('Add topic')}
+        </Key>
+      {/if}
       <nav class="rf-nav" aria-label={t('Main')}>
         {#each tabs as tab (tab.path)}
           <a href={resolve(tab.path)} aria-current={isCurrent(tab)}>
@@ -123,28 +127,7 @@
           >
         {/if}
       </nav>
-      <div class="rf-me">
-        {#if auth.features?.sync}<div class="rf-sync"><SyncStatus /></div>{/if}
-        <div class="rf-bell-row">
-          <Bell />
-          <span class="rf-bell-label" aria-hidden="true"><Glyph name="bell" />{t('Notifications')}</span>
-        </div>
-        <ModeSwitch row />
-        <button type="button" class="rf-row" onclick={() => feedback?.show()}>
-          <Glyph name="message" /><span>{t('Send feedback')}</span>
-        </button>
-        <a
-          class="rf-person"
-          href={resolve('/(app)/account')}
-          aria-current={here === resolve('/(app)/account') ? 'page' : undefined}
-        >
-          <Avatar {user} size={36} />
-          <span class="rf-person-text">
-            <span class="rf-person-name">{user.name || t('Your account')}</span>
-            <span class="rf-person-mail">{user.email}</span>
-          </span>
-        </a>
-      </div>
+      {#if offline}<div class="rf-sync"><SyncStatus /></div>{/if}
     </aside>
   {/if}
 
@@ -175,12 +158,7 @@
       {#each tabs.slice(0, 2) as tab (tab.path)}
         <a href={resolve(tab.path)} aria-current={isCurrent(tab)}><Glyph name={tab.glyph} />{t(tab.label)}</a>
       {/each}
-      <button
-        type="button"
-        class="rf-add"
-        aria-label={t('Add what you studied')}
-        onclick={() => startAdding()}
-      >
+      <button type="button" class="rf-add" aria-label={t('Add topic')} onclick={() => startAdding()}>
         <Leaves size={52} /><Glyph name="plus" size={24} />
       </button>
       {#each tabs.slice(2) as tab (tab.path)}
@@ -197,7 +175,6 @@
     <UndoBar message={ui.note.message} onundo={ui.note.undo} ondone={() => (ui.note = null)} />
   {/key}
 {/if}
-<FeedbackDialog bind:this={feedback} />
 
 <style>
   /* Shelf colours, light and dark: the pot, the card and the text or letter on them. */
@@ -402,8 +379,7 @@
   .rf-nav a:focus-visible,
   .rf-add:focus-visible,
   .rf-brand:focus-visible,
-  .rf-home:focus-visible,
-  .rf-person:focus-visible {
+  .rf-home:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
@@ -466,7 +442,7 @@
     .rf-brand-side {
       gap: 0.75rem;
       padding: 0.25rem 0.25rem 0.5rem;
-      font-size: 1.625rem;
+      font-size: 1.375rem;
       letter-spacing: -0.02em;
     }
     .rf-side :global(.rk) {
@@ -510,124 +486,19 @@
     }
     /* The bell as a labelled row: the bell's own button stretches over the row (so the whole
        row opens it), its unread count sits at the row's end, and its list opens upward. */
-    .rf-bell-row {
-      position: relative;
+    .rf-side-head {
       display: flex;
       align-items: center;
-      min-height: 2.75rem;
-      border-radius: 12px;
-      color: var(--color-muted);
+      justify-content: space-between;
+      gap: 0.5rem;
     }
-    .rf-bell-row:hover {
-      background: var(--color-base-200);
-      color: var(--color-heading);
-    }
-    .rf-bell-row:has(:focus-visible) {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
-    .rf-bell-row :global(.bell) {
-      position: static;
-    }
-    .rf-bell-row :global(.bell .icon) {
-      position: absolute;
-      inset: 0;
-      width: auto;
-      height: auto;
-      z-index: 1;
-      background: none;
-      color: transparent;
-    }
-    .rf-bell-row :global(.bell .icon:focus-visible) {
-      outline: none;
-    }
-    .rf-bell-row :global(.bell .icon svg) {
-      display: none;
-    }
-    .rf-bell-row :global(.bell .count) {
-      top: 50%;
-      right: 0.75rem;
-      transform: translateY(-50%);
-      box-shadow: none;
-    }
-    .rf-bell-row :global(.bell .panel) {
-      top: auto;
-      bottom: calc(100% + 6px);
+    .rf-side-head :global(.bell .panel) {
       left: 0;
       right: auto;
     }
-    .rf-bell-label {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0 0.75rem;
-    }
     .rf-sync {
-      padding: 0 0.375rem;
-    }
-    .rf-me {
       margin-top: auto;
-      display: grid;
-      gap: 0.125rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--color-base-300);
-    }
-    .rf-row {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      min-height: 2.75rem;
-      padding: 0 0.75rem;
-      border: 0;
-      border-radius: 12px;
-      background: none;
-      color: var(--color-muted);
-      font: inherit;
-      text-align: start;
-      cursor: pointer;
-    }
-    .rf-row:hover {
-      background: var(--color-base-200);
-      color: var(--color-heading);
-    }
-    .rf-row:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 2px;
-    }
-    .rf-person {
-      margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.5rem 0.625rem;
-      border: 1px solid var(--color-base-300);
-      border-radius: 16px;
-      color: var(--color-heading);
-      text-decoration: none;
-      min-width: 0;
-    }
-    .rf-person:hover,
-    .rf-person[aria-current='page'] {
-      background: var(--color-leaf-tab);
-      border-color: var(--color-leaf-soft);
-    }
-    .rf-person-text {
-      display: grid;
-      min-width: 0;
-    }
-    .rf-person-name {
-      font-size: 0.9375rem;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    .rf-person-mail {
-      font-size: 0.75rem;
-      color: var(--color-muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      padding: 0 0.375rem;
     }
     .rf-page {
       padding-bottom: 0;

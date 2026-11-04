@@ -1,10 +1,9 @@
 <!--
-  Plant something new: a large dialog (the whole screen on a phone) to log a topic in under ten
-  seconds: what you studied, its category, how long you need it, Plant it (Enter in the title
-  plants it too). Its head is the plan, drawn as a garden row that moves as the choices change.
-  Notes (with a little formatting; links go in them) and the day studied sit beside the choices
-  on a computer, below them on a phone. The category and "keep it for" start at the ones used
-  last on this device (or the category it was opened from).
+  Add a topic: a large dialog (the whole screen on a phone) to log what you studied in seconds.
+  Two questions: what did you study, and how long do you need it. Its head is the plan, drawn as
+  a garden row that moves with the choices. Notes, the category, the day studied and the rarer
+  lengths wait behind one line. The category and the length start at the ones used last on this
+  device (or the category it was opened from). Enter in the title adds it too.
 -->
 <script lang="ts">
   import { untrack } from 'svelte';
@@ -68,6 +67,7 @@
   let horizon = $state<Horizon>(DEFAULT_HORIZON);
   let saving = $state(false);
   let tried = $state(false);
+  let more = $state(false);
   let titleInput = $state<HTMLInputElement>();
 
   const today = $derived(memory.today);
@@ -86,14 +86,17 @@
   const plan = $derived(
     isDay(studiedOn) && !hzProblem ? preview({ studiedOn, endOn: end }, memory.settings.retention) : [],
   );
+  const lastReview = $derived(plan.at(-1));
   const planLabel = $derived(
-    end
-      ? tn(plan.length, 'It comes back once, before {end}', 'It comes back {count} times, until {end}', {
-          end: formatDay(end, today),
-        })
-      : t('It comes back less and less often, for good'),
+    !end
+      ? t('Reviews get further apart, for good')
+      : lastReview
+        ? tn(plan.length, '1 review, on {date}', '{count} reviews, the last on {date}', {
+            date: formatDay(lastReview, today),
+          })
+        : t('Nothing to review before it ends'),
   );
-  const firstLabel = $derived(plan[0] ? t('First check-in {when}', { when: whenNext(plan[0], today) }) : '');
+  const shelfName = $derived(memory.shelves.find((x) => x.id === shelf)?.name ?? null);
 
   // The dialog: opened and closed from `open`; Escape and the backdrop only while nothing is typed.
   const uid = $props.id();
@@ -117,6 +120,7 @@
     studiedOther = addDays(memory.today, -2);
     horizon = lastHorizon();
     tried = false;
+    more = !!ui.addOnShelf;
     queueMicrotask(() => titleInput?.focus());
   }
 
@@ -137,18 +141,9 @@
       const first = r.plan[0];
       const name = title.trim();
       say(
-        !first
-          ? t('Planted {title}.', { title: name })
-          : r.endOn
-            ? tn(
-                r.plan.length,
-                'Planted. First check-in {when}, the only one before {end}.',
-                'Planted. First check-in {when}, about {count} until {end}.',
-                { when: whenNext(first, today), end: formatDay(r.endOn, today) },
-              )
-            : t('Planted. First check-in {when}, then less and less often.', {
-                when: whenNext(first, today),
-              }),
+        first
+          ? t('Added. First review {when}.', { when: whenNext(first, today) })
+          : t('Added {title}.', { title: name }),
       );
     } finally {
       saving = false;
@@ -168,15 +163,14 @@
   <form class="modal-box ad-box" onsubmit={save} novalidate>
     <header class="ad-hero">
       <div class="ad-top">
-        <h2 id="{uid}-title">{t('Plant something new')}</h2>
+        <h2 id="{uid}-title" class="sr-only">{t('Add a topic')}</h2>
+        <p class="ad-plan" aria-live="polite">
+          {#if hzProblem || !isDay(studiedOn)}{t('Choose how long you need it')}{:else}{planLabel}{/if}
+        </p>
         <button type="button" class="ad-close" aria-label={t('Close')} onclick={() => (open = false)}
           ><Glyph name="close" size={18} /></button
         >
       </div>
-      <p class="ad-plan" aria-live="polite">
-        {#if hzProblem || !isDay(studiedOn)}{t('Choose how long to keep it')}{:else}{planLabel}{/if}
-      </p>
-      {#if firstLabel && !hzProblem}<p class="ad-first">{firstLabel}</p>{/if}
       {#if plan.length && isDay(studiedOn)}
         <PlanLine {plan} start={studiedOn} {end} {today} />
       {/if}
@@ -195,48 +189,48 @@
             maxlength={200}
             autocomplete="off"
             enterkeyhint="done"
-            placeholder={t('Krebs cycle, chapter 4, React effects…')}
+            placeholder={t('Krebs cycle, chapter 4…')}
           />
         </Field>
       </div>
 
-      <div class="ad-cols">
-        <div class="ad-choices">
-          <ShelfPicker bind:shelf bind:newName={newShelf} problem={tried ? shelfProblem : null} />
-          <HorizonPicker bind:horizon {today} problem={tried ? hzProblem : null} />
-        </div>
-        <div class="ad-side">
-          <NotesEditor bind:value={notes} rows={6} />
-          <fieldset class="ad-when">
-            <legend>{t('Studied')}</legend>
-            <div class="ad-tray">
-              {#each [['today', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Earlier']] as const as [value, label] (value)}
-                <label class="ad-tab" class:ad-on={studied === value}>
-                  <input type="radio" name="{uid}-studied" {value} bind:group={studied} />
-                  <span>{t(label)}</span>
-                </label>
-              {/each}
+      <HorizonPicker bind:horizon {today} problem={tried ? hzProblem : null} common={!more} />
+
+      {#if more}
+        <ShelfPicker bind:shelf bind:newName={newShelf} problem={tried ? shelfProblem : null} />
+        <NotesEditor bind:value={notes} rows={5} />
+        <fieldset class="ad-when">
+          <legend>{t('Studied')}</legend>
+          <div class="ad-tray">
+            {#each [['today', 'Today'], ['yesterday', 'Yesterday'], ['other', 'Earlier']] as const as [value, label] (value)}
+              <label class="ad-tab" class:ad-on={studied === value}>
+                <input type="radio" name="{uid}-studied" {value} bind:group={studied} />
+                <span>{t(label)}</span>
+              </label>
+            {/each}
+          </div>
+          {#if studied === 'other'}
+            <div class="ad-day">
+              <Field
+                label={t('Day studied')}
+                invalid={tried && !!dateProblem}
+                hint={tried && dateProblem ? t(dateProblem) : undefined}
+              >
+                <Input type="date" bind:value={studiedOther} max={today} />
+              </Field>
             </div>
-            {#if studied === 'other'}
-              <div class="ad-day">
-                <Field
-                  label={t('Day studied')}
-                  invalid={tried && !!dateProblem}
-                  hint={tried && dateProblem ? t(dateProblem) : undefined}
-                >
-                  <Input type="date" bind:value={studiedOther} max={today} />
-                </Field>
-              </div>
-            {/if}
-          </fieldset>
-        </div>
-      </div>
+          {/if}
+        </fieldset>
+      {:else}
+        <button type="button" class="ad-more" onclick={() => (more = true)}>
+          <Glyph name="plus" size={16} />{t('Add notes, category or date')}
+        </button>
+        {#if shelfName}<p class="ad-in">{t('Goes in {shelf}', { shelf: shelfName })}</p>{/if}
+      {/if}
     </div>
 
     <footer class="ad-foot">
-      <button type="button" class="ad-cancel" onclick={() => (open = false)}>{t('Cancel')}</button>
-      <Key tone="leaf" big type="submit" disabled={saving}><Glyph name="plus" size={18} />{t('Plant it')}</Key
-      >
+      <Key tone="leaf" big type="submit" disabled={saving}><Glyph name="plus" size={18} />{t('Add')}</Key>
     </footer>
   </form>
   {#if !dirty}
@@ -269,12 +263,6 @@
     justify-content: space-between;
     gap: 1rem;
   }
-  .ad-top h2 {
-    margin: 0;
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: var(--color-leaf-deep);
-  }
   .ad-close {
     display: grid;
     place-items: center;
@@ -291,29 +279,26 @@
     background: color-mix(in oklab, var(--color-base-100) 55%, transparent);
   }
   .ad-close:focus-visible,
-  .ad-cancel:focus-visible {
+  .ad-more:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
   }
   .ad-plan {
-    margin: 0.25rem 0 0;
-    max-width: 30ch;
-    font-size: 1.375rem;
+    margin: 0;
+    font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
     letter-spacing: -0.01em;
     color: var(--color-heading);
     text-wrap: balance;
   }
-  .ad-first {
-    margin: 0.25rem 0 0;
-    font-size: 0.875rem;
-    color: var(--color-leaf-deep);
-  }
   .ad-body {
     flex: 1;
     overflow-y: auto;
     overscroll-behavior: contain;
+    display: grid;
+    align-content: start;
+    gap: 1.25rem;
     padding: 1.25rem 1.25rem 1.5rem;
   }
   /* Every label in the dialog in one voice: the fields' and the choices' alike. */
@@ -324,8 +309,8 @@
     color: var(--color-heading);
   }
   .ad-title :global(input) {
-    min-height: 3.5rem;
-    font-size: 1.375rem;
+    min-height: 3.25rem;
+    font-size: 1.125rem;
     font-weight: 500;
     border-radius: 16px;
   }
@@ -335,16 +320,25 @@
     border-color: var(--color-leaf-line);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-leaf-line) 22%, transparent);
   }
-  .ad-cols {
-    display: grid;
-    gap: 1.25rem;
-    margin-top: 1.25rem;
+  .ad-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-self: start;
+    min-height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--color-primary);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 8px;
   }
-  .ad-choices,
-  .ad-side {
-    display: grid;
-    gap: 1.25rem;
-    min-width: 0;
+  .ad-in {
+    margin: -1rem 0 0;
+    color: var(--color-muted);
+    font-size: 0.875rem;
   }
   .ad-when {
     border: 0;
@@ -415,24 +409,10 @@
   .ad-foot :global(.rk) {
     flex: 1;
   }
-  .ad-cancel {
-    min-height: 2.75rem;
-    padding: 0 1rem;
-    border: 0;
-    border-radius: 12px;
-    background: none;
-    color: var(--color-base-content);
-    font: inherit;
-    font-weight: 500;
-    cursor: pointer;
-  }
-  .ad-cancel:hover {
-    background: var(--color-base-200);
-  }
 
   @media (min-width: 48rem) {
     .ad-box {
-      width: min(62rem, calc(100vw - 3rem));
+      width: min(38rem, calc(100vw - 3rem));
       height: auto;
       max-height: min(52rem, calc(100dvh - 3rem));
       border-radius: 28px;
@@ -440,23 +420,11 @@
     .ad-hero {
       padding: 1rem 1.75rem 0.875rem;
     }
-    .ad-plan {
-      font-size: 1.75rem;
-    }
     .ad-body {
       padding: 1.5rem 1.75rem 1.75rem;
     }
-    .ad-cols {
-      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-      gap: 2rem;
-      align-items: start;
-    }
     .ad-foot {
       padding: 0.875rem 1.75rem;
-    }
-    .ad-foot :global(.rk) {
-      flex: none;
-      min-width: 12rem;
     }
   }
   @media (prefers-reduced-motion: reduce) {
