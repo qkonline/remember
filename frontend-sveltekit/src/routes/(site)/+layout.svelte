@@ -7,7 +7,6 @@
   import { resolve } from '$app/paths';
   import { appName } from '#lib/config.ts';
   import { t } from '#lib/i18n/index.svelte.ts';
-  import Button from '#lib/components/ui/Button.svelte';
   import Logo from '#lib/app/ui/Logo.svelte';
   import ModeSwitch from '#lib/app/ui/ModeSwitch.svelte';
 
@@ -21,7 +20,6 @@
       <nav aria-label={t('Account')}>
         <ModeSwitch />
         <a href={resolve('signin')}>{t('Sign in')}</a>
-        <Button variant="primary" size="small" href={resolve('signup')}>{t('Create account')}</Button>
       </nav>
     </div>
   </header>

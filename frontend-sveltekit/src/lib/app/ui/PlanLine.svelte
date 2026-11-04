@@ -11,7 +11,23 @@
   import { formatDay } from '#lib/app/dates.ts';
   import { t } from '#lib/i18n/index.svelte.ts';
 
-  let { plan, start, end, today }: { plan: Day[]; start: Day; end: Day | null; today: Day } = $props();
+  let {
+    plan,
+    start,
+    end,
+    today,
+    startLabel,
+    name,
+  }: {
+    plan: Day[];
+    start: Day;
+    end: Day | null;
+    today: Day;
+    /** Words for the seed's label, in place of its date. */
+    startLabel?: string;
+    /** Words for a mark in place of its date; '' leaves it unlabelled. */
+    name?: (d: Day) => string;
+  } = $props();
 
   const MAX = 8;
   const shown = $derived(plan.slice(0, MAX));
@@ -19,7 +35,7 @@
   const span = $derived(
     Math.max(1, end ? daysBetween(start, end) : Math.ceil(daysBetween(start, shown.at(-1) ?? start) * 1.18)),
   );
-  const at = (d: Day) => Math.sqrt(Math.max(0, daysBetween(start, d)) / span);
+  const at = (d: Day) => Math.min(1, Math.sqrt(Math.max(0, daysBetween(start, d)) / span));
 
   let width = $state(0);
   const SIDE = 28; // room at each end for the seed and the stake
@@ -49,13 +65,15 @@
     }
     return items;
   });
-  const short = (d: Day) => formatDay(d, today).replace(/,? \d{4}$/, '');
+  const short = (d: Day) => name?.(d) ?? formatDay(d, today).replace(/,? \d{4}$/, '');
 </script>
 
 <div class="pl" class:pl-forever={!end} bind:clientWidth={width} aria-hidden="true">
   <div class="pl-ground"></div>
   <span class="pl-seed" style:left="{SIDE}px"></span>
-  <span class="pl-date pl-start" style:left="{SIDE}px">{start === today ? t('Today') : short(start)}</span>
+  <span class="pl-date pl-start" style:left="{SIDE}px"
+    >{startLabel ?? (start === today ? t('Today') : formatDay(start, today).replace(/,? \d{4}$/, ''))}</span
+  >
   {#each marks as m, i (i)}
     <span class="pl-mark" style:left="{m.left}px">
       <svg class="pl-sprout" width="22" height={m.height} viewBox="0 0 22 {m.height}">

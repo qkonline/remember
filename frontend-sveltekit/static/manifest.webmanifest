@@ -1,7 +1,7 @@
 {
   "name": "Remember",
   "short_name": "Remember",
-  "description": "Remember what you study for as long as you need it: one calm list a day of what to recall.",
+  "description": "Stop forgetting what you study: one calm list a day of what to review.",
   "id": "/",
   "start_url": "/app",
   "scope": "/",

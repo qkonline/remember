@@ -1,7 +1,7 @@
 <!--
-  Remember's landing page: what it is in one plain sentence, where the idea comes from (Hermann
-  Ebbinghaus's forgetting curve), how it works in three steps, and the way in. Built ahead of
-  time, so it loads fast and search engines can read it.
+  Remember's landing page: the problem and how it works in two lines, the way in, the plant, and
+  a picture of the product: reviews spreading out towards an exam, and a card to rate. Built ahead
+  of time, so it loads fast and search engines can read it.
 -->
 <script lang="ts">
   import { onMount } from 'svelte';
@@ -9,7 +9,12 @@
   import { resolve } from '$app/paths';
   import { appName } from '#lib/config.ts';
   import { t } from '#lib/i18n/index.svelte.ts';
+  import type { Shelf } from '#lib/app/store.svelte.ts';
+  import CardDeck from '#lib/app/ui/CardDeck.svelte';
+  import Glyph from '#lib/app/ui/Glyph.svelte';
   import Key from '#lib/app/ui/Key.svelte';
+  import PlanLine from '#lib/app/ui/PlanLine.svelte';
+  import ShelfMark from '#lib/app/ui/ShelfMark.svelte';
 
   // A backend that can't tell where a social sign-in started sends the browser to the site's
   // root with `error=oauth_…` (contract: /auth/oauth/{provider}/callback); show it there.
@@ -19,24 +24,15 @@
       goto(`${resolve('auth/callback')}?error=${encodeURIComponent(error)}`, { replace: true });
   });
 
-  const steps = [
-    {
-      title: 'Add what you studied',
-      text: 'Type the topic, put it in a category like Biology or Law, and choose how long you need it: a week, until your exam, or for good.',
-    },
-    {
-      title: 'Check yourself for a few minutes a day',
-      text: 'Each day Remember shows the few topics you’re about to forget. Try to recall each one, then tap Forgot, Hazy or Remembered.',
-    },
-    {
-      title: 'Keep it for as long as you need',
-      text: 'The more it sticks, the less often it comes back. The last check lands just before your exam.',
-    },
-  ];
+  // The picture of how it works: dates that never show, on a row like the one in the Add form.
+  const DEMO_START = '2026-01-01';
+  const DEMO_END = '2026-04-01';
+  const demoPlan = ['2026-01-02', '2026-01-08', '2026-01-24', '2026-03-28'];
+  const demoShelf = { id: 'demo', name: 'B', color: 'green' } as Shelf;
 </script>
 
 <svelte:head>
-  <title>{appName}: {t('remember what you study')}</title>
+  <title>{appName}: {t('stop forgetting what you study')}</title>
   <meta
     name="description"
     content={t(
@@ -47,16 +43,13 @@
 
 <section class="lp-hero">
   <div class="lp-hero-text">
-    <h1>{t('Remember what you study, for as long as you need it.')}</h1>
+    <h1>{t('Stop forgetting what you study.')}</h1>
     <p class="lp-lead">
       {t(
-        'Remember is a simple study app. After you study something, add it and choose how long you need to keep it. Remember brings it back on the right days for a quick check, so it sticks without cramming.',
+        'Add a topic and your notes. No flashcards to write. We bring it back on the right days, until your exam or for good.',
       )}
     </p>
-    <div class="lp-row">
-      <Key tone="leaf" big onclick={() => goto(resolve('signup'))}>{t('Create a free account')}</Key>
-      <a class="lp-signin" href={resolve('signin')}>{t('Sign in')}</a>
-    </div>
+    <Key tone="leaf" big onclick={() => goto(resolve('signup'))}>{t('Get started free')}</Key>
   </div>
 
   <svg class="lp-art" width="280" height="290" viewBox="0 0 240 250" aria-hidden="true">
@@ -70,26 +63,28 @@
   </svg>
 </section>
 
-<section class="lp-why" aria-labelledby="why-title">
-  <h2 id="why-title">{t('Why it works')}</h2>
-  <p>
-    {t(
-      'In the 1880s the psychologist Hermann Ebbinghaus found that we forget most of what we learn within days, but each time we recall it at the right moment, we forget it more slowly. Remember plans those moments for you, for each topic.',
-    )}
-  </p>
-</section>
-
-<section class="lp-how" aria-labelledby="how-title">
-  <h2 id="how-title">{t('How it works')}</h2>
-  <ol>
-    {#each steps as s, i (s.title)}
-      <li>
-        <span class="lp-num" aria-hidden="true">{i + 1}</span>
-        <h3>{t(s.title)}</h3>
-        <p>{t(s.text)}</p>
-      </li>
-    {/each}
-  </ol>
+<section class="lp-demo" aria-label={t('How it looks')}>
+  <PlanLine
+    plan={demoPlan}
+    start={DEMO_START}
+    end={DEMO_END}
+    today={DEMO_START}
+    name={(d) => (d === demoPlan[1] ? t('Next week') : d === demoPlan.at(-1) ? t('Your exam') : '')}
+  />
+  <div class="lp-card" inert>
+    <CardDeck>
+      <div class="lp-card-top">
+        <ShelfMark shelf={demoShelf} size={30} />
+        <span>{t('Biology')}</span>
+      </div>
+      <p class="lp-card-title">{t('Photosynthesis')}</p>
+      <div class="lp-rate">
+        <Key tone="forgot"><Glyph name="cross" size={16} />{t('Forgot')}</Key>
+        <Key tone="hazy"><Glyph name="wave" size={16} />{t('Partly')}</Key>
+        <Key tone="leaf"><Glyph name="check" size={16} />{t('Remembered')}</Key>
+      </div>
+    </CardDeck>
+  </div>
 </section>
 
 <style>
@@ -119,19 +114,8 @@
     color: var(--color-muted);
     max-width: 36rem;
   }
-  .lp-row {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1.25rem;
-    margin-top: 0.5rem;
-  }
-  .lp-signin {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    font-weight: 500;
-    color: var(--color-link);
+  .lp-hero-text :global(.rk) {
+    justify-self: start;
   }
   .lp-art {
     justify-self: center;
@@ -170,61 +154,48 @@
     stroke-linejoin: round;
   }
 
-  h2 {
-    margin: 0 0 0.75rem;
-    font-size: 1.375rem;
-    font-weight: 600;
-    color: var(--color-heading);
-  }
-  .lp-why {
-    margin-top: 3.5rem;
-    padding: 1.5rem;
-    border-radius: 24px;
-    background: var(--color-leaf-tab);
-    max-width: 48rem;
-  }
-  .lp-why p {
-    margin: 0;
-    font-size: 1.0625rem;
-    line-height: 1.6;
-    color: var(--color-base-content);
-  }
-  .lp-how {
-    margin-top: 3rem;
-    padding-bottom: 2rem;
-  }
-  .lp-how ol {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+  .lp-demo {
     display: grid;
-    gap: 1rem;
+    gap: 1.5rem;
+    margin: 3rem 0 2.5rem;
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-radius: 24px;
+    background: var(--color-base-200);
   }
-  .lp-how li {
-    padding: 1.25rem;
-    border: 1px solid var(--color-base-300);
-    border-radius: 20px;
+  .lp-card {
+    width: min(100%, 30rem);
+    margin-inline: auto;
   }
-  .lp-num {
-    display: inline-grid;
-    place-items: center;
-    width: 2rem;
-    height: 2rem;
-    border-radius: 10px;
-    background: var(--color-leaf);
-    color: var(--color-leaf-ink);
+  .lp-card-top {
+    --sh-card: var(--color-leaf-tint);
+    --sh-ink: var(--color-leaf-deep);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-leaf-deep);
+  }
+  .lp-card-title {
+    margin: auto 0 0;
+    font-size: 1.5rem;
+    line-height: 1.15;
     font-weight: 600;
-  }
-  .lp-how h3 {
-    margin: 0.75rem 0 0.375rem;
-    font-size: 1.0625rem;
-    font-weight: 600;
+    letter-spacing: -0.01em;
     color: var(--color-heading);
   }
-  .lp-how p {
-    margin: 0;
-    color: var(--color-muted);
-    line-height: 1.55;
+  .lp-rate {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr);
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+  .lp-rate :global(.rk) {
+    padding: 0 0.25rem;
+    font-size: 0.875rem;
+  }
+  .lp-rate :global(.rk-in) {
+    gap: 0.25rem;
   }
 
   @media (min-width: 48rem) {
@@ -234,9 +205,6 @@
     }
     .lp-art {
       width: 17.5rem;
-    }
-    .lp-how ol {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 </style>

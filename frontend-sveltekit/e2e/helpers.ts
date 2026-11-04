@@ -64,12 +64,12 @@ export const signedInApp = (page: Page) => page.locator('[data-signed-in]');
 
 /** If the app holds unconfirmed accounts back, confirm with the mailed code. */
 export async function passGate(page: Page, email: string): Promise<void> {
-  const gate = page.getByRole('heading', { name: 'Confirm your email' });
+  const gate = page.getByRole('heading', { name: 'Check your email' });
   const home = signedInApp(page);
   await expect(gate.or(home)).toBeVisible();
   if (await gate.isVisible()) {
     await page.getByLabel('Code').fill(await latestCode(email));
-    await page.getByRole('button', { name: 'Confirm email' }).click();
+    await page.getByRole('button', { name: 'Continue' }).click();
     await expect(home).toBeVisible();
   }
 }

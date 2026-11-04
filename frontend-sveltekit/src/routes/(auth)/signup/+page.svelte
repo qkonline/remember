@@ -55,11 +55,7 @@
       id="password"
       bind:value={password}
       autocomplete="new-password"
-      hint={tn(
-        methods.password.minLength,
-        'At least 1 character. It never leaves this device: we only get a key made from it.',
-        'At least {count} characters. It never leaves this device: we only get a key made from it.',
-      )}
+      hint={tn(methods.password.minLength, 'At least 1 character.', 'At least {count} characters.')}
     />
     {#if methods.captcha}<Captcha
         bind:this={captcha}
