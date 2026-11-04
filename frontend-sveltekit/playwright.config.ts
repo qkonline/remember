@@ -16,7 +16,8 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
-  retries: 0,
+  // Sign-up waits on Cloudflare's Turnstile widget, an outside service that sometimes stalls.
+  retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   use: {
     baseURL: `http://localhost:${PORT}`,
