@@ -77,7 +77,7 @@
     gap: var(--space-2);
     font-weight: 600;
     font-size: 1.0625rem;
-    color: var(--color-heading);
+    color: var(--color-leaf-edge);
     text-decoration: none;
   }
 

@@ -297,7 +297,6 @@
       text-align: center;
     }
     h1 {
-      color: var(--color-leaf-edge);
       text-wrap: balance;
     }
     .lp-why {
