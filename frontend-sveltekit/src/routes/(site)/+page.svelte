@@ -194,8 +194,17 @@
     padding: 0 0.25rem;
     font-size: 0.875rem;
   }
+  /* On a phone the icons sit above the words, as on the review page, so Remembered fits. */
   .lp-rate :global(.rk-in) {
-    gap: 0.25rem;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  @media (min-width: 30rem) {
+    .lp-rate :global(.rk-in) {
+      flex-direction: row;
+      gap: 0.25rem;
+    }
   }
 
   @media (min-width: 48rem) {
