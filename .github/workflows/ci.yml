@@ -45,6 +45,16 @@ jobs:
           cache: npm
           cache-dependency-path: '*/package-lock.json'
       - run: (cd contract && npm ci) && (cd backend-cloudflare && npm ci && npm run db:migrate)
+      # wrangler.toml holds production's addresses; a laptop overrides them in .dev.vars, which
+      # isn't in git. Without this the local backend refuses the local frontends' origins.
+      - name: Point the backend at the local frontends
+        working-directory: backend-cloudflare
+        run: |
+          {
+            echo 'ALLOWED_ORIGINS="http://localhost:5180,http://localhost:4180,http://localhost:5173,http://localhost:4173"'
+            echo 'RP_ID=localhost'
+            echo 'APP_URL='
+          } > .dev.vars
       - name: Start the backend
         working-directory: backend-cloudflare
         run: npm run ${{ matrix.mode }} > /tmp/worker.log 2>&1 &
