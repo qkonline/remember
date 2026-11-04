@@ -15,6 +15,7 @@
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
   import Trans from '#lib/components/Trans.svelte';
+  import Leaves from '#lib/app/ui/Leaves.svelte';
 
   const methods = $derived(auth.methods!);
   // Derived, so a link to this page with another `next` is followed.
@@ -75,13 +76,54 @@
         </Trans>
       </p>
     {/if}
-    <SubmitButton {task} busyLabel={t('Creating your account…')}>{t('Create account')}</SubmitButton>
+    <SubmitButton {task} busyLabel={t('Creating your account…')}
+      ><span class="key-leaves"><Leaves size={96} /></span>{t('Create account')}</SubmitButton
+    >
   </form>
 
-  <p class="muted">
+  <p class="muted other-way">
     {t('Already have an account?')}
     <a href="{resolve('signin')}{next ? `?next=${encodeURIComponent(next)}` : ''}">{t('Sign in')}</a>
   </p>
   <!-- Remember: the line agreeing to the terms and privacy policy is hidden until those pages are
        written (put it back from the template then). -->
 </AuthShell>
+
+<style>
+  .key-leaves {
+    display: none;
+  }
+
+  /* Phones and small tablets only, until the desktop pass: the home page's raised leaf key. */
+  @media (max-width: 47.99rem) {
+    form :global(.btn-primary) {
+      --btn-color: var(--color-leaf-key);
+      --btn-fg: var(--color-leaf-ink);
+      position: relative;
+      overflow: hidden;
+      min-height: 3.5rem;
+      border: 1px solid var(--color-leaf-key);
+      border-radius: 16px;
+      background: var(--color-leaf-key);
+      box-shadow: 0 4px 0 var(--color-leaf-edge);
+      color: var(--color-leaf-ink);
+      font-size: 1.0625rem;
+      font-weight: 500;
+      transition:
+        transform 80ms ease,
+        box-shadow 80ms ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    form :global(.btn-primary:active) {
+      transform: translateY(3px);
+      box-shadow: 0 0 0 var(--color-leaf-edge);
+    }
+    .key-leaves {
+      display: contents;
+    }
+    .other-way {
+      text-align: center;
+    }
+  }
+</style>

@@ -70,11 +70,26 @@
     font-size: var(--text-xl);
   }
 
-  @media (max-width: 30rem) {
+  /* Phones and small tablets only, until the desktop pass: the same 44 px row for the logo and
+     the switch, so they sit on one line. */
+  @media (max-width: 47.99rem) {
     .shell {
       padding-top: var(--space-5);
     }
 
+    .brand {
+      min-height: 2.75rem;
+    }
+
+    .mode {
+      top: var(--space-5);
+      display: flex;
+      align-items: center;
+      height: 2.75rem;
+    }
+  }
+
+  @media (max-width: 30rem) {
     .auth-card {
       padding: var(--space-5) var(--space-4);
     }
