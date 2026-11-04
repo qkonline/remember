@@ -20,6 +20,7 @@
   import Field from '#lib/components/ui/Field.svelte';
   import Input from '#lib/components/ui/Input.svelte';
   import Trans from '#lib/components/Trans.svelte';
+  import Leaves from '#lib/app/ui/Leaves.svelte';
 
   const methods = $derived(auth.methods!);
 
@@ -64,7 +65,7 @@
 
 {#if !sentTo}
   <AuthShell title={t('Reset your password')} lead={t('We’ll email you a code to set a new one.')}>
-    <form class="stack" onsubmit={send} novalidate>
+    <form class="stack auth-keys" onsubmit={send} novalidate>
       <Field label={t('Email')} id="email">
         <Input
           type="email"
@@ -81,16 +82,18 @@
           action="forgot"
         />{/if}
       <FormError message={sendTask.error} />
-      <SubmitButton task={sendTask} busyLabel={t('Sending…')}>{t('Email me a code')}</SubmitButton>
+      <SubmitButton task={sendTask} busyLabel={t('Sending…')}
+        ><span class="key-leaves"><Leaves size={96} /></span>{t('Email me a code')}</SubmitButton
+      >
     </form>
-    <p class="muted"><a href={resolve('signin')}>{t('Back to sign in')}</a></p>
+    <p class="muted auth-other"><a href={resolve('signin')}>{t('Back to sign in')}</a></p>
   </AuthShell>
 {:else}
   <AuthShell
     title={t('Check your email')}
     lead={t('If {email} has an account, a code is on its way. It works for 10 minutes.', { email: sentTo })}
   >
-    <form class="stack" onsubmit={reset} novalidate>
+    <form class="stack auth-keys" onsubmit={reset} novalidate>
       <CodeInput id="code" bind:value={code} />
       <PasswordInput
         id="password"
@@ -115,10 +118,10 @@
       />
       <FormError message={resetTask.error} />
       <SubmitButton task={resetTask} busyLabel={t('Setting your password…')}
-        >{t('Set password and sign in')}</SubmitButton
+        ><span class="key-leaves"><Leaves size={96} /></span>{t('Set password and sign in')}</SubmitButton
       >
     </form>
-    <p class="muted">
+    <p class="muted auth-other">
       <Trans text="No email? Check spam, or <again>send another code</again>.">
         {#snippet again(s: string)}<Button type="button" variant="link" onclick={() => (sentTo = null)}
             >{s}</Button

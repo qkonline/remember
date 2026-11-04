@@ -128,6 +128,7 @@
     :global(.key-leaves) {
       display: contents;
     }
+    .auth-card:has(:global(.auth-keys)) header,
     .auth-card :global(.auth-keys > p.small),
     .auth-card :global(.auth-other) {
       text-align: center;
