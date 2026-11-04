@@ -1,12 +1,13 @@
 <!--
-  Refreshing, one card at a time and nothing else on screen: the topic and a prompt to recall it
-  first, the notes only when asked, then one honest tap (Forgot, Hazy, Remembered; keys 1, 2, 3).
-  Forgot opens the notes to look again before the next card. Each answer moves the card the way
-  it goes: Remembered lifts it, with a burst of leaves, up into the progress bar; Hazy blurs it
-  and tucks it back into the deck (it comes back a little sooner); Forgot shakes its head, then
-  sinks to the bottom of the deck. The next card rises from the deck. With reduced motion, only
-  quick fades and the colour flush remain. The last card leads to "All caught
-  up". `?id=…` checks one topic now (from its page); otherwise today's list, as it was on opening.
+  The review, one topic at a time and nothing else on screen: the topic and a prompt to recall it,
+  then the notes, then one honest tap (Forgot, Partly, Remembered; keys 1, 2, 3, and Space for the
+  notes). A topic without notes goes straight to the tap. Forgot leaves the notes open for another
+  look. Each answer moves the card the way it goes: Remembered lifts it, with a burst of leaves,
+  up into the progress bar; Partly blurs it and tucks it back into the deck (it comes back a
+  little sooner); Forgot shakes its head, then sinks to the bottom of the deck. The next card rises
+  from the deck. With reduced motion, only quick fades and the colour flush remain. The last
+  topic leads to "All caught up". `?id=…` reviews one topic now (from its page); otherwise today's
+  list, as it was on opening. (The rating stored for Partly is still `hazy`.)
 -->
 <script lang="ts">
   import { onMount, tick } from 'svelte';
@@ -16,7 +17,7 @@
   import { appName } from '#lib/config.ts';
   import { t, tn } from '#lib/i18n/index.svelte.ts';
   import { checkIn, memory, undoCheckIn, type CheckedIn } from '#lib/app/store.svelte.ts';
-  import { daysBetween, minutesFor, todayList, type RatingName } from '#lib/app/schedule/index.ts';
+  import { daysBetween, todayList, type RatingName } from '#lib/app/schedule/index.ts';
   import { whenNext } from '#lib/app/dates.ts';
   import { currentRun } from '#lib/app/growth.ts';
   import Glyph from '#lib/app/ui/Glyph.svelte';
@@ -57,7 +58,7 @@
   );
   const done = $derived(queue !== null && index >= total);
   const hasNotes = $derived(!!topic && !!(topic.notes.trim() || topic.link));
-  const leftMinutes = $derived(minutesFor(Math.max(1, total - index)));
+  const showRatings = $derived(!hasNotes || reveal);
 
   const counts = $derived({
     got: results.filter((r) => r.rating === 'got').length,
@@ -245,8 +246,8 @@
         rating === 'forgot'
           ? t('Coming back {when}.', { when: r.next ? whenNext(r.next, today) : t('soon') })
           : r.next
-            ? t('Next check-in {when}.', { when: whenNext(r.next, today) })
-            : t('That was the last check-in.'),
+            ? t('Next review {when}.', { when: whenNext(r.next, today) })
+            : t('That was the last review.'),
         () => void undo(),
       );
       if (rating === 'forgot') await shake();
@@ -292,7 +293,7 @@
       else if (e.key === '3') void rate('got');
       else if (e.key === ' ' && hasNotes && !(target instanceof HTMLButtonElement)) {
         e.preventDefault();
-        reveal = !reveal;
+        reveal = true;
       } else if (e.key === 'Escape') void stop();
     };
     addEventListener('keydown', keys);
@@ -300,7 +301,7 @@
   });
 </script>
 
-<svelte:head><title>{done ? t('All caught up') : t('Refreshing')} · {appName}</title></svelte:head>
+<svelte:head><title>{done ? t('All caught up') : t('Review')} · {appName}</title></svelte:head>
 
 <div class="rv">
   {#if !memory.loaded || queue === null}
@@ -316,29 +317,29 @@
         <circle cx="146" cy="56" r="9" class="rv-bud" />
         <path d="M88 200h64l-8 34H96z" class="rv-pot" />
       </svg>
-      <h1 id="done-title">{total ? t('All caught up') : t('Nothing to refresh right now')}</h1>
+      <h1 id="done-title">{total ? t('All caught up') : t('Nothing to review right now')}</h1>
       {#if results.length}
         <p class="rv-sub">
-          {tn(results.length, '1 refreshed', '{count} refreshed')}:
+          {tn(results.length, '1 reviewed', '{count} reviewed')}:
           {[
             counts.got ? tn(counts.got, '1 remembered', '{count} remembered') : '',
-            counts.hazy ? tn(counts.hazy, '1 hazy', '{count} hazy') : '',
+            counts.hazy ? tn(counts.hazy, '1 partly', '{count} partly') : '',
             counts.forgot ? tn(counts.forgot, '1 forgot', '{count} forgot') : '',
           ]
             .filter(Boolean)
             .join(', ')}.
         </p>
         {#if counts.hazy || counts.forgot}
-          <p class="rv-sub">{t('Hazy and forgotten ones come back sooner.')}</p>
+          <p class="rv-sub">{t('Those you partly remembered or forgot come back sooner.')}</p>
         {/if}
       {/if}
       <div class="rv-facts">
         <span
           >{tomorrow
-            ? tn(tomorrow, 'Tomorrow: 1 card', 'Tomorrow: {count} cards')
+            ? tn(tomorrow, 'Tomorrow: 1 topic', 'Tomorrow: {count} topics')
             : t('Nothing tomorrow')}</span
         >
-        {#if run > 1}<span>{tn(run, 'Run: 1 day', 'Run: {count} days')}</span>{/if}
+        {#if run >= 3}<span>{t('{count} days in a row', { count: run })}</span>{/if}
       </div>
       <div class="rv-done-key">
         <Key tone="leaf" big wide onclick={stop}>{t('Back to Today')}</Key>
@@ -353,16 +354,12 @@
         class="rv-progress"
         bind:this={progress}
         role="img"
-        aria-label={t('Card {n} of {total}', { n: index + 1, total })}
+        aria-label={t('Topic {n} of {total}', { n: index + 1, total })}
       >
         {#each Array.from({ length: total }, (_v, i) => i) as i (i)}<span class:rv-on={i <= index}
           ></span>{/each}
       </div>
-      <span class="rv-of"
-        >{t('{n} of {total}', { n: index + 1, total })}<span class="rv-min"
-          >, {tn(leftMinutes, 'about 1 min', 'about {count} min')}</span
-        ></span
-      >
+      <span class="rv-of">{t('{n} of {total}', { n: index + 1, total })}</span>
     </header>
 
     {#if topic}
@@ -398,26 +395,20 @@
                 : t('Have another look now.')}
             </p>
           {:else}
-            <p class="rv-prompt">{t('Take 30 seconds. What do you remember about it?')}</p>
+            <p class="rv-prompt">
+              {hasNotes ? t('Try to recall it, then check your notes.') : t('Try to recall it.')}
+            </p>
           {/if}
-          {#if hasNotes}
-            {#if reveal}
-              <div class="rv-notes">
-                <p class="rv-notes-head">
-                  {t('Your notes')}<span class="rv-hint">{t('Space to hide')}</span>
-                </p>
-                {#if topic.notes.trim()}<div class="rv-text"><NotesText text={topic.notes} /></div>{/if}
-                {#if topic.link}
-                  <a class="rv-link" href={topic.link} target="_blank" rel="noopener noreferrer"
-                    ><Glyph name="link" size={16} />{t('Open your link')}</a
-                  >
-                {/if}
-              </div>
-            {:else}
-              <button type="button" class="rv-show" onclick={() => (reveal = true)}
-                ><Glyph name="down" size={16} />{t('Show my notes')}</button
-              >
-            {/if}
+          {#if hasNotes && reveal}
+            <div class="rv-notes">
+              <p class="rv-notes-head">{t('Your notes')}</p>
+              {#if topic.notes.trim()}<div class="rv-text"><NotesText text={topic.notes} /></div>{/if}
+              {#if topic.link}
+                <a class="rv-link" href={topic.link} target="_blank" rel="noopener noreferrer"
+                  ><Glyph name="link" size={16} />{t('Open your link')}</a
+                >
+              {/if}
+            </div>
           {/if}
         </TopicCard>
       </div>
@@ -425,27 +416,28 @@
       <div class="rv-keys">
         {#if restudy}
           <Key tone="leaf" big wide onclick={nextCard} disabled={busy}
-            >{index + 1 < total ? t('Next card') : t('Finish')}</Key
+            >{index + 1 < total ? t('Next topic') : t('Done')}</Key
           >
+        {:else if !showRatings}
+          <Key tone="leaf" big wide onclick={() => (reveal = true)}>{t('Show my notes')}</Key>
         {:else}
-          <p class="rv-ask" id="ask">{t('How did it go?')}</p>
+          <p class="rv-ask" id="ask">{t('How much did you remember?')}</p>
           <div class="rv-rate" role="group" aria-labelledby="ask">
             <Key tone="forgot" big onclick={() => rate('forgot')} disabled={busy}
-              ><Glyph name="cross" size={18} />{t('Forgot')}<kbd>1</kbd></Key
+              ><Glyph name="cross" size={18} />{t('Forgot')}</Key
             >
             <Key tone="hazy" big onclick={() => rate('hazy')} disabled={busy}
-              ><Glyph name="wave" size={18} />{t('Hazy')}<kbd>2</kbd></Key
+              ><Glyph name="wave" size={18} />{t('Partly')}</Key
             >
             <Key tone="leaf" big onclick={() => rate('got')} disabled={busy}
-              ><Glyph name="check" size={18} />{t('Remembered')}<kbd>3</kbd></Key
+              ><Glyph name="check" size={18} />{t('Remembered')}</Key
             >
           </div>
-          <p class="rv-note">{t('Hazy still counts. It just comes back a little sooner.')}</p>
         {/if}
       </div>
     {:else}
       <p class="rv-quiet">{t('This topic isn’t here any more.')}</p>
-      <div class="rv-keys"><Key big wide onclick={advance}>{t('Next card')}</Key></div>
+      <div class="rv-keys"><Key big wide onclick={advance}>{t('Next topic')}</Key></div>
     {/if}
   {/if}
 </div>
@@ -489,7 +481,6 @@
     display: none;
   }
   .rv-stop:focus-visible,
-  .rv-show:focus-visible,
   .rv-link:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
@@ -512,9 +503,6 @@
     color: var(--color-muted);
     font-size: 0.875rem;
     white-space: nowrap;
-  }
-  .rv-min {
-    display: none;
   }
   .rv-stage {
     position: relative;
@@ -590,21 +578,6 @@
     line-height: 1.5;
     max-width: 34ch;
   }
-  .rv-show {
-    align-self: flex-start;
-    margin-top: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    min-height: 2.75rem;
-    padding: 0;
-    background: none;
-    border: 0;
-    color: var(--color-link);
-    font: inherit;
-    font-weight: 500;
-    cursor: pointer;
-  }
   .rv-notes {
     margin-top: auto;
     display: grid;
@@ -620,12 +593,6 @@
     margin: 0;
     font-weight: 500;
     color: var(--color-leaf-deep);
-  }
-  .rv-hint {
-    margin-inline-start: auto;
-    font-size: 0.75rem;
-    font-weight: 400;
-    color: var(--color-muted);
   }
   .rv-text {
     margin: 0;
@@ -651,15 +618,6 @@
   .rv-rate :global(.rk-in) {
     flex-direction: column;
     gap: 0.125rem;
-  }
-  .rv-rate kbd {
-    display: none;
-  }
-  .rv-note {
-    margin: 0.875rem 0 0;
-    text-align: center;
-    color: var(--color-muted);
-    font-size: 0.8125rem;
   }
 
   .rv-done {
@@ -735,8 +693,7 @@
     .rv {
       padding-top: 1.5rem;
     }
-    .rv-stop span,
-    .rv-min {
+    .rv-stop span {
       display: inline;
     }
     .rv-stop {
@@ -745,15 +702,6 @@
     .rv-rate :global(.rk-in) {
       flex-direction: row;
       gap: 0.5rem;
-    }
-    .rv-rate kbd {
-      display: inline-block;
-      padding: 0.0625rem 0.4375rem;
-      border-radius: 6px;
-      background: rgb(255 255 255 / 0.6);
-      font: inherit;
-      font-size: 0.75rem;
-      color: inherit;
     }
   }
 </style>
