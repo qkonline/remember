@@ -293,7 +293,7 @@
     align-items: center;
     gap: 0.625rem;
     min-height: 2.75rem;
-    color: var(--color-leaf-edge);
+    color: var(--color-wordmark);
     font-weight: 600;
     font-size: 1.0625rem;
     text-decoration: none;

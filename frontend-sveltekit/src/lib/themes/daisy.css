@@ -89,6 +89,7 @@
     /* The leaf greens of Remember's keys, lines and tints */
     --color-leaf: light-dark(#94d873, #94d873);
     --color-leaf-key: #cbffb2;
+    --color-wordmark: light-dark(#3d8a2c, #4f8a3a);
     --color-leaf-ink: light-dark(#173d0f, #10200b);
     --color-leaf-edge: light-dark(#5aa143, #4f8a3a);
     --color-leaf-line: light-dark(#3d8a2c, #8fd46c);

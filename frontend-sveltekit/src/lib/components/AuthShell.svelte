@@ -40,7 +40,7 @@
     gap: var(--space-2);
     font-size: var(--text-lg);
     font-weight: var(--weight-heading);
-    color: var(--color-leaf-edge);
+    color: var(--color-wordmark);
     text-decoration: none;
   }
 
