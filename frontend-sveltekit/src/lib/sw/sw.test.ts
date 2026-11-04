@@ -25,7 +25,7 @@ describe('the service worker', () => {
       precacheList(
         '/',
         [{ path: '_app/a.js' }],
-        [{ path: 'favicon.svg' }, { path: '_headers' }],
+        [{ path: 'favicon.svg' }, { path: '_headers' }, { path: '.DS_Store' }],
         [{ path: '' }, { path: 'account' }],
       ),
     ).toEqual(['/_app/a.js', '/favicon.svg', '/', '/account']);

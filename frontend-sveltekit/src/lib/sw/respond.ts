@@ -29,8 +29,9 @@ export function isNavigation(request: Request): boolean {
 export function precacheList(base: string, ...groups: { path: string }[][]): string[] {
   const root = base.replace(/\/$/, '');
   const paths = groups.flat().map(({ path }) => `${root}/${path.replace(/^\//, '')}`);
-  // Files a host reads rather than serves.
-  return [...new Set(paths)].filter((p) => !/\/_(headers|redirects)$/.test(p));
+  // Files a host reads rather than serves, and Finder's, which it never receives: one 404 here
+  // fails the whole install.
+  return [...new Set(paths)].filter((p) => !/\/(_headers|_redirects|\.DS_Store)$/.test(p));
 }
 
 export async function respond(request: Request, deps: RespondDeps): Promise<Response> {
